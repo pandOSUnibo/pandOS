@@ -1,7 +1,6 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 jobs:
-  build:
+  install:
     machine:
       image: ubuntu-2004:202010-01
     steps:
@@ -14,20 +13,31 @@ jobs:
             sudo add-apt-repository ppa:virtualsquare/umps
             sudo apt update
             sudo apt install umps3
+  build:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
       - run:
           name: Building
           command : |
             cmake -S ./ -B ./build
             cd build
             make
+  test:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
       - run:
           name: Running
           command: ./build/pandos
 
-# Orchestrate or schedule a set of jobs
 workflows:
-  # Name the workflow "welcome"
   default:
-    # Run the welcome/run job in its own container
     jobs:
-      - build
+      - install
+      - build:
+          requires:
+            - install
+      - setup:
+          requires:
+            - build

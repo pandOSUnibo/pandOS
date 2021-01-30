@@ -9,11 +9,11 @@ jobs:
       - run:
           name: Installing umps3
           command: |
-            add-apt-repository universe
-            apt update
-            add-apt-repository ppa:virtualsquare/umps
-            apt update
-            apt install umps3
+            sudo add-apt-repository universe
+            sudo apt update
+            sudo add-apt-repository ppa:virtualsquare/umps
+            sudo apt update
+            sudo apt install umps3
       - run:
           name: Building
           command : |
@@ -22,7 +22,7 @@ jobs:
             make
       - run:
           name: Running
-          command: ./build
+          command: ./build/pandos
 
 # Orchestrate or schedule a set of jobs
 workflows:

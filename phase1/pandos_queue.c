@@ -41,6 +41,8 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
 void insertProcQ(pcb_t **tp, pcb_t *p) {
     if (*tp == NULL) {
         *tp = p;
+        (*p).p_next = p;
+        (*p).p_prev = p;
         return;
     }
 

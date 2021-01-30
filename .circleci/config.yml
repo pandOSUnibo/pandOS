@@ -1,0 +1,43 @@
+version: 2.1
+jobs:
+  install:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - run:
+          name: Installing umps3
+          command: |
+            sudo add-apt-repository universe
+            sudo apt update
+            sudo add-apt-repository ppa:virtualsquare/umps
+            sudo apt update
+            sudo apt install umps3
+  build:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - run:
+          name: Building
+          command : |
+            cmake -S ./ -B ./build
+            cd build
+            make
+  test:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - run:
+          name: Running
+          command: ./build/pandos
+
+workflows:
+  default:
+    jobs:
+      - install
+      - build:
+          requires:
+            - install
+      - test:
+          requires:
+            - build

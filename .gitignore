@@ -51,6 +51,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+#Vscode
+.vscode
+
 #Build file
 build/
 [Aa]

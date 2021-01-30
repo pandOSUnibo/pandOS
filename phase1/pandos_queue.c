@@ -22,19 +22,20 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
 
     } while ((*toRemove) != *tp);
 
+    // Case of pcb not in given queue
     if (!found) return NULL;
 
-    // Case of element pointed by sentinel to be removed (first element)
-    if (toRemove == *tp) {
-        *tp = (*toRemove).p_next;
+    // Case of circular list with single element
+    if ((*toRemove).p_next == toRemove) *tp = NULL;
+    else {
 
-        // Case of circular list with single element
-        if (toRemove == *tp) *tp = NULL;
+        // Case of element to be removed pointed by sentinel (first element)
+        if (toRemove == *tp) *tp = (**tp).p_next;
+
+        // Changing pointers of previous and next pcbs in the list
+        (*((*toRemove).p_prev)).p_next = (*toRemove).p_next;
+        (*((*toRemove).p_next)).p_prev = (*toRemove).p_prev;
     }
-
-    // Changing pointers of previous and next pcbs in the list
-    (*((*toRemove).p_prev)).p_next = (*toRemove).p_next;
-    (*((*toRemove).p_next)).p_prev = (*toRemove).p_prev;
 
     // Resetting pointers of removed process
     (*toRemove).p_next = NULL;

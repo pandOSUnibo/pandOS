@@ -9,12 +9,12 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
     if (*tp == NULL) return NULL;
 
     pcb_t *toRemove = *tp;
-    bool found = false;
+    int found = FALSE;
     do {
         // Comparison made between memory location, not pcb_t content
         // TODO: check if good idea
         if (toRemove == p) {
-            found = true;
+            found = TRUE;
             break;
         }
 

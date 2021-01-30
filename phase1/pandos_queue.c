@@ -36,6 +36,12 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
         (*((*toRemove).p_prev)).p_next = (*toRemove).p_next;
         (*((*toRemove).p_next)).p_prev = (*toRemove).p_prev;
     }
+
+    // Resetting pointers of removed process
+    (*toRemove).p_next = NULL;
+    (*toRemove).p_prev = NULL;
+
+    return toRemove;
 }
 
 void insertProcQ(pcb_t **tp, pcb_t *p) {

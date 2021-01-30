@@ -18,12 +18,14 @@ pcb_t *removeProcQ(pcb_t **tp) {
 
     pcb_t *toRemove = (**tp).p_prev;
 
+    // Case of a circular list with single element
     if ((*toRemove).p_prev == toRemove) *tp = NULL;
     else {
         (**tp).p_prev = (*toRemove).p_prev;
         (*(*toRemove).p_prev).p_next = *tp;
     }
 
+    // Resetting pointers of removed process
     (*toRemove).p_next = NULL;
     (*toRemove).p_prev = NULL;
 

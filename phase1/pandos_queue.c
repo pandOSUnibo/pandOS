@@ -16,14 +16,9 @@ void insertProcQ(pcb_t **tp, pcb_t *p) {
 pcb_t *removeProcQ(pcb_t **tp) {
     if(*tp == NULL) return NULL;
 
-    pcb_t *toRemove = *tp;
-    *tp = (**tp).p_next;
-    if (toRemove == *tp) {
-        *tp = NULL;
-    } else {
-        (*((*toRemove).p_prev)).p_next = (*toRemove).p_next;
-        (*((*toRemove).p_next)).p_prev = (*toRemove).p_prev; 
-    }
+    pcb_t *toRemove = (**tp).p_prev;
+    (**tp).p_prev = (*toRemove).p_prev;
+    (*(*toRemove).p_prev).p_next = *tp;
 
     (*toRemove).p_next = NULL;
     (*toRemove).p_prev = NULL;

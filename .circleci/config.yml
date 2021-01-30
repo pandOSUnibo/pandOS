@@ -38,6 +38,6 @@ workflows:
       - build:
           requires:
             - install
-      - setup:
+      - test:
           requires:
             - build

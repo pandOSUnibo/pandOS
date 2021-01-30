@@ -17,8 +17,12 @@ pcb_t *removeProcQ(pcb_t **tp) {
     if(*tp == NULL) return NULL;
 
     pcb_t *toRemove = (**tp).p_prev;
-    (**tp).p_prev = (*toRemove).p_prev;
-    (*(*toRemove).p_prev).p_next = *tp;
+
+    if((*toRemove).p_prev == toRemove) *tp = NULL;
+    else {
+        (**tp).p_prev = (*toRemove).p_prev;
+        (*(*toRemove).p_prev).p_next = *tp;
+    }
 
     (*toRemove).p_next = NULL;
     (*toRemove).p_prev = NULL;

@@ -20,7 +20,7 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
 
         toRemove = (*toRemove).p_next;
 
-    } while ((*toRemove) != *tp);
+    } while ((*toRemove).p_next != *tp);
 
     // Case of pcb not in given queue
     if (!found) return NULL;

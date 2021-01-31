@@ -1,5 +1,17 @@
 #include "pandos_queue.h"
 
+void initPcbs();
+
+pcb_t *mkEmptyProcQ() {
+    // An empty process queue is a NULL pointer
+    return NULL;
+}
+
+int emptyProcQ(pcb_t *tp) {
+    // An empty process queue is equal to a NULL pointer
+    return tp == NULL;
+}
+
 pcb_t *headProcQ(pcb_t **tp){
     if (*tp == NULL) return NULL;
     return (**tp).p_next;

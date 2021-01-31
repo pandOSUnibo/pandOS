@@ -1,6 +1,16 @@
-#include "pandos_queue.h"
+#include "pcb.h"
 
-void initPcbs();
+void initPcbs() {
+
+}
+
+void freePcb(pcb_t *p) {
+
+}
+
+pcb_t *allocPcb() {
+
+}
 
 pcb_t *mkEmptyProcQ() {
     // An empty process queue is a NULL pointer
@@ -11,6 +21,7 @@ int emptyProcQ(pcb_t *tp) {
     // An empty process queue is equal to a NULL pointer
     return tp == NULL;
 }
+
 
 pcb_t *headProcQ(pcb_t **tp){
     if (*tp == NULL) return NULL;
@@ -32,7 +43,7 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
 
         toRemove = (*toRemove).p_next;
 
-    } while ((*toRemove) != *tp);
+    } while ((toRemove) != *tp);
 
     // Case of pcb not in given queue
     if (!found) return NULL;
@@ -88,4 +99,20 @@ pcb_t *removeProcQ(pcb_t **tp) {
     (*toRemove).p_prev = NULL;
 
     return toRemove;
+}
+
+int emptyChild(pcb_t *p) {
+
+}
+
+void insertChild(pcb_t *prnt,pcb_t *p) {
+
+}
+
+pcb_t* removeChild(pcb_t *p) {
+
+}
+
+pcb_t *outChild(pcb_t* p) {
+    
 }

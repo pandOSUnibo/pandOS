@@ -58,3 +58,5 @@ appunti.md
 
 out/
 *.umps
+# TODO: When we use Cmake, switch to build/*
+build/kernel

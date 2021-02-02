@@ -20,16 +20,8 @@ jobs:
       - run:
           name: Building
           command : |
-            cmake -S ./ -B ./build
             cd build
             make
-  test:
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - run:
-          name: Running
-          command: ./build/pandos
 
 workflows:
   default:

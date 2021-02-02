@@ -20,6 +20,7 @@ jobs:
       - run:
           name: Building
           command : |
+            ls
             cd build
             make
 

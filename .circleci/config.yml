@@ -30,6 +30,3 @@ workflows:
       - build:
           requires:
             - install
-      - test:
-          requires:
-            - build

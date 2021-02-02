@@ -50,9 +50,9 @@ int emptyProcQ(pcb_t *tp) {
 }
 
 
-pcb_t *headProcQ(pcb_t **tp){
-    if (*tp == NULL) return NULL;
-    return (*tp)->p_prev;
+pcb_t *headProcQ(pcb_t *tp){
+    if (tp == NULL) return NULL;
+    return tp->p_prev;
 }
 
 pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
@@ -69,7 +69,7 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
 
         toRemove = toRemove->p_next;
 
-    } while (toRemove->p_next != *tp);
+    } while (toRemove != *tp);
 
     // Case of pcb not in given queue
     if (!found) return NULL;

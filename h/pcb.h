@@ -16,7 +16,7 @@ int emptyProcQ(pcb_t *tp);
 
 void insertProcQ(pcb_t **tp, pcb_t *p);
 
-pcb_t *headProcQ(pcb_t **tp);
+pcb_t *headProcQ(pcb_t *tp);
 
 pcb_t *removeProcQ(pcb_t **tp);
 

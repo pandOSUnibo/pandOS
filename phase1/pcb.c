@@ -1,7 +1,19 @@
+
+
 #include "pcb.h"
+#include <umps3/umps/const.h>
+
+HIDDEN pcb_t pcbFree_table[MAXPROC];
+HIDDEN pcb_t *pcbFree_h;
 
 void initPcbs() {
-
+    pcbFree_h = &(pcbFree_table[0]);
+    pcb_t *iterator = pcbFree_h;
+    for (int i = 1; i < MAXPROC; i++){
+        iterator->p_next = &(pcbFree_table[i]);
+        iterator = iterator->p_next;
+    }
+    iterator->p_next = NULL;
 }
 
 void freePcb(pcb_t *p) {

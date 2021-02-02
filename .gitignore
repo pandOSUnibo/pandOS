@@ -56,4 +56,4 @@ umps3
 appunti.md
 .vscode
 
-./build
+build/

@@ -17,11 +17,26 @@ void initPcbs() {
 }
 
 void freePcb(pcb_t *p) {
-
+   p->p_next = pcbFree_h;
+   pcbFree_h = p; 
 }
 
 pcb_t *allocPcb() {
-
+    pcb_t *head = NULL;
+    if(pcbFree_h != NULL){
+        head = pcbFree_h;
+        pcbFree_h = head->p_next;
+        /*Clean pcb*/
+        head->p_next = NULL;
+        head->p_prev = NULL;
+        head->p_prnt = NULL;
+        head->p_child = NULL;
+        head->p_next_sib = NULL;
+        head->p_prev_sib = NULL;
+        head->p_semAdd = NULL;
+        head->p_time = 0;
+    }
+    return head;
 }
 
 pcb_t *mkEmptyProcQ() {

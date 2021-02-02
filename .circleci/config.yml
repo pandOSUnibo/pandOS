@@ -20,7 +20,7 @@ jobs:
       - run:
           name: Building
           command : |
-            ls
+            cd pandOS
             cd build
             make
 

@@ -55,9 +55,6 @@ dkms.conf
 umps3
 appunti.md
 .vscode
-<<<<<<< HEAD
 
 out/
-=======
 *.umps
->>>>>>> ca6294b0cd0475c779f6465966a1a87caaa95b71

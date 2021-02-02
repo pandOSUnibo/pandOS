@@ -37,7 +37,7 @@ int emptyProcQ(pcb_t *tp) {
 
 pcb_t *headProcQ(pcb_t **tp){
     if (*tp == NULL) return NULL;
-    return (**tp).p_next;
+    return (*tp)->p_prev;
 }
 
 pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
@@ -52,28 +52,28 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
             break;
         }
 
-        toRemove = (*toRemove).p_next;
+        toRemove = toRemove->p_next;
 
-    } while ((*toRemove).p_next != *tp);
+    } while (toRemove->p_next != *tp);
 
     // Case of pcb not in given queue
     if (!found) return NULL;
 
     // Case of circular list with single element
-    if ((*toRemove).p_next == toRemove) *tp = NULL;
+    if (toRemove->p_next == toRemove) *tp = NULL;
     else {
 
         // Case of element to be removed pointed by sentinel (first element)
-        if (toRemove == *tp) *tp = (**tp).p_next;
+        if (toRemove == *tp) *tp = (*tp)->p_next;
 
         // Changing pointers of previous and next pcbs in the list
-        (*((*toRemove).p_prev)).p_next = (*toRemove).p_next;
-        (*((*toRemove).p_next)).p_prev = (*toRemove).p_prev;
+        toRemove->p_prev->p_next = toRemove->p_next;
+        toRemove->p_next->p_prev = toRemove->p_prev;
     }
 
     // Resetting pointers of removed process
-    (*toRemove).p_next = NULL;
-    (*toRemove).p_prev = NULL;
+    toRemove->p_next = NULL;
+    toRemove->p_prev = NULL;
 
     return toRemove;
 }

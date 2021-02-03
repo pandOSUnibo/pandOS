@@ -13,7 +13,13 @@ pcb_t* removeBlocked(int *semAdd) {
 }
 
 pcb_t* outBlocked(pcb_t *p) {
+    if (p == NULL) return NULL;
 
+    semd_t *semaphore = p->p_semAdd;
+    
+    // Error condition: doesn't belong to a semaphore queue
+    if (semaphore == NULL) return NULL;
+    return outProcQ(&(semaphore->s_procQ), p);
 }
 
 pcb_t* headBlocked(int *semAdd) {

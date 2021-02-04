@@ -152,4 +152,7 @@
 /* End of Mikeyg constants */
 
 
+#define MAXPOINT ((void *)0xFFFFFFFF)
+#define MINPOINT ((void *)0x00000000)
+
 #endif

@@ -20,6 +20,7 @@ int insertBlocked(int *semAdd, pcb_t *p) {
     semd_t* prev = findPrevSemd(semAdd);
     semd_t* element = prev->s_next;
     if (element->s_semAdd == semAdd){
+        p->p_semAdd = semAdd;
         insertProcQ(&(element->s_procQ), p);
     }
     else {
@@ -34,6 +35,7 @@ int insertBlocked(int *semAdd, pcb_t *p) {
         newSemd->s_next = element;
         newSemd->s_semAdd = semAdd;
         newSemd->s_procQ = mkEmptyProcQ();
+        p->p_semAdd = semAdd;
         insertProcQ(&(newSemd->s_procQ), p);
     }
 
@@ -66,7 +68,14 @@ pcb_t* outBlocked(pcb_t *p) {
     // Error condition: semaphore not in ASL
     if(element->s_semAdd != p->p_semAdd) return NULL;
 
-    return outProcQ(&(element->s_procQ), p);
+    pcb_t* removed = outProcQ(&(element->s_procQ), p);
+    if (emptyProcQ(element->s_procQ)) {
+        prev->s_next = element->s_next;
+        element->s_next = semdFree_h;
+        semdFree_h = element;
+    }
+
+    return removed;
 }
 
 pcb_t* headBlocked(int *semAdd) {

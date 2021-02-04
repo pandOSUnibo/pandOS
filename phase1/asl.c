@@ -61,13 +61,10 @@ pcb_t* outBlocked(pcb_t *p) {
     if (p == NULL) return NULL;
 
     semd_t *prev = findPrevSemd(p->p_semAdd);
-    // Implemented considering findPrevSemd returns NULL if not found
-    // TODO: check that we indeed choose this implementation of findPrevSemd
+    semd_t *element = prev->s_next;
 
     // Error condition: semaphore not in ASL
-    if(prev == NULL) return NULL;
-
-    semd_t *element = prev->s_next;
+    if(element->s_semAdd != p->p_semAdd) return NULL;
 
     return outProcQ(&(element->s_procQ), p);
 }

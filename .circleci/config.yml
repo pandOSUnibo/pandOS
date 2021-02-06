@@ -16,8 +16,8 @@ jobs:
       - run:
           name: Building
           command : |
-            cd build
-            make
+            ./configure.sh
+            ./build.sh
             
 
 workflows:

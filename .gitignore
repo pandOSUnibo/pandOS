@@ -56,7 +56,5 @@ umps3
 appunti.md
 .vscode
 
-out/
-*.umps
-# TODO: When we use Cmake, switch to build/*
-build/
+build
+umps3Config

@@ -23,13 +23,16 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
-      - checkout
-      - cd ..
-      - git clone https://github.com/pandOSUnibo/docs
-      - rm -r docs/docs
-      - cp -r pandOS/docs docs/docs
-      - cd docs
-      - git push
+      - run:
+        name: "Transferring docs"
+        command : |
+            checkout
+            cd ..
+            git clone https://github.com/pandOSUnibo/docs
+            rm -r docs/docs
+            cp -r pandOS/docs docs/docs
+            cd docs
+            git push
             
 
 workflows:

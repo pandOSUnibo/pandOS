@@ -1,2 +1,0 @@
-PandOS Documentation
-====================

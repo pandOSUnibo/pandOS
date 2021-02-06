@@ -23,10 +23,10 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     steps:
+      - checkout
       - run:
-        name: "Transferring docs"
+        name: Transferring docs
         command : |
-            checkout
             cd ..
             git clone https://github.com/pandOSUnibo/docs
             rm -r docs/docs

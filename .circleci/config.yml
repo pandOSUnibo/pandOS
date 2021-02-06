@@ -38,5 +38,5 @@ jobs:
 workflows:
   default:
     jobs:
-      - build
       - docs
+      - build

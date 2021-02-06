@@ -32,8 +32,11 @@ jobs:
             rm -rf docs/docs
             cp -r project/docs docs/docs
             cd docs
+            git config --global user.email "you@example.com"
+            git config --global user.name "Your Name"
+            git add --all
             git commit -am "Updated docs"
-            git push
+            git push origin master
             
 
 workflows:

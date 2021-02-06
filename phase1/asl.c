@@ -3,11 +3,21 @@
 
 #define MAXSEMD MAXPROC + 2
 
+typedef struct semd_t {
+	/* ptr to next element on queue */
+	struct semd_t *s_next;
+	/* ptr to the semaphore */
+	int *s_semAdd;
+	/* ptr to tail of the queue of procs.
+	blocked on this sem. */
+	pcb_t *s_procQ;
+} semd_t;
+
 HIDDEN semd_t semd_table[MAXSEMD];
 HIDDEN semd_t *semdFree_h;
 HIDDEN semd_t *semd_h;
 
-semd_t* findPrevSemd(int *semAdd) {
+HIDDEN semd_t* findPrevSemd(int *semAdd) {
     semd_t *prev = semd_h;
     while (semAdd > prev->s_next->s_semAdd) {
         prev = prev->s_next;
@@ -17,8 +27,8 @@ semd_t* findPrevSemd(int *semAdd) {
 }
 
 int insertBlocked(int *semAdd, pcb_t *p) {
-    semd_t* prev = findPrevSemd(semAdd);
-    semd_t* element = prev->s_next;
+    semd_t *prev = findPrevSemd(semAdd);
+    semd_t *element = prev->s_next;
     if (element->s_semAdd == semAdd){
         p->p_semAdd = semAdd;
         insertProcQ(&(element->s_procQ), p);
@@ -28,7 +38,7 @@ int insertBlocked(int *semAdd, pcb_t *p) {
             return TRUE;
         }
 
-        semd_t* newSemd = semdFree_h;
+        semd_t *newSemd = semdFree_h;
         semdFree_h = semdFree_h->s_next;
 
         prev->s_next = newSemd;
@@ -43,11 +53,11 @@ int insertBlocked(int *semAdd, pcb_t *p) {
 }
 
 pcb_t* removeBlocked(int *semAdd) {
-    semd_t* prev = findPrevSemd(semAdd);
-    semd_t* element = prev->s_next;
+    semd_t *prev = findPrevSemd(semAdd);
+    semd_t *element = prev->s_next;
 
     if (element->s_semAdd == semAdd){
-        pcb_t* first = removeProcQ(&(element->s_procQ));
+        pcb_t *first = removeProcQ(&(element->s_procQ));
         if (emptyProcQ(element->s_procQ)){
             prev->s_next = element->s_next;
             element->s_next = semdFree_h;
@@ -68,7 +78,7 @@ pcb_t* outBlocked(pcb_t *p) {
     // Error condition: semaphore not in ASL
     if(element->s_semAdd != p->p_semAdd) return NULL;
 
-    pcb_t* removed = outProcQ(&(element->s_procQ), p);
+    pcb_t *removed = outProcQ(&(element->s_procQ), p);
     if (emptyProcQ(element->s_procQ)) {
         prev->s_next = element->s_next;
         element->s_next = semdFree_h;
@@ -79,8 +89,8 @@ pcb_t* outBlocked(pcb_t *p) {
 }
 
 pcb_t* headBlocked(int *semAdd) {
-    semd_t* prev = findPrevSemd(semAdd);
-    semd_t* element = prev->s_next;
+    semd_t *prev = findPrevSemd(semAdd);
+    semd_t *element = prev->s_next;
 
     if (element->s_semAdd == semAdd){
         return headProcQ(element->s_procQ);
@@ -90,7 +100,7 @@ pcb_t* headBlocked(int *semAdd) {
 
 void initASL() {
     semdFree_h = &(semd_table[2]);
-    for (int i = 2; i < MAXSEMD - 1; i++) {
+    for (int i = 2; i < MAXSEMD - 1; ++i) {
         semd_table[i].s_next = &(semd_table[i + 1]);
     }
     semd_table[MAXSEMD - 1].s_next = NULL;

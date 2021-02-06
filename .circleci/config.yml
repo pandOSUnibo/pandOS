@@ -16,7 +16,6 @@ jobs:
       - run:
           name: Building
           command : |
-            ./configure.sh
             ./build.sh
             
 

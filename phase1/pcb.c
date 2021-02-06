@@ -7,7 +7,7 @@ HIDDEN pcb_t *pcbFree_h;
 
 void initPcbs() {
     pcbFree_h = &(pcbFree_table[0]);
-    for (int i = 0; i < MAXPROC - 1; i++) {
+    for (int i = 0; i < MAXPROC - 1; ++i) {
         pcbFree_table[i].p_next = &(pcbFree_table[i + 1]);
     }
     pcbFree_table[MAXPROC - 1].p_next = NULL;
@@ -18,7 +18,7 @@ void freePcb(pcb_t *p) {
    pcbFree_h = p; 
 }
 
-pcb_t *allocPcb() {
+pcb_t* allocPcb() {
     pcb_t *head = NULL;
     if(pcbFree_h != NULL){
         head = pcbFree_h;
@@ -36,7 +36,7 @@ pcb_t *allocPcb() {
     return head;
 }
 
-pcb_t *mkEmptyProcQ() {
+pcb_t* mkEmptyProcQ() {
     // An empty process queue is a NULL pointer
     return NULL;
 }
@@ -47,12 +47,12 @@ int emptyProcQ(pcb_t *tp) {
 }
 
 
-pcb_t *headProcQ(pcb_t *tp){
+pcb_t* headProcQ(pcb_t *tp){
     if (tp == NULL) return NULL;
     return tp->p_prev;
 }
 
-pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
+pcb_t* outProcQ(pcb_t **tp, pcb_t *p){
     if (*tp == NULL) return NULL;
 
     pcb_t *toRemove = *tp;
@@ -105,7 +105,7 @@ void insertProcQ(pcb_t **tp, pcb_t *p) {
     *tp = p;
 }
 
-pcb_t *removeProcQ(pcb_t **tp) {
+pcb_t* removeProcQ(pcb_t **tp) {
     if(*tp == NULL) return NULL;
 
     pcb_t *toRemove = (*tp)->p_prev;
@@ -144,7 +144,7 @@ pcb_t* removeChild(pcb_t *p) {
         return NULL;
     }
     else {
-        pcb_t* child = p->p_child;
+        pcb_t *child = p->p_child;
         p->p_child = child->p_next_sib;
 
         if (child->p_next_sib != NULL){
@@ -158,7 +158,7 @@ pcb_t* removeChild(pcb_t *p) {
     }
 }
 
-pcb_t *outChild(pcb_t* p) {
+pcb_t* outChild(pcb_t *p) {
     if (p->p_prnt == NULL) {
         return NULL;
     }

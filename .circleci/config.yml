@@ -27,12 +27,12 @@ jobs:
       - run:
           name: Transferring docs
           command : |
-            pwd
             cd ..
             git clone https://github.com/pandOSUnibo/docs
             rm -rf docs/docs
             cp -r project/docs docs/docs
             cd docs
+            git commit -am "Updated docs"
             git push
             
 

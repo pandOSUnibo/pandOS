@@ -28,7 +28,7 @@ jobs:
           name: Transferring docs
           command : |
             cd ..
-            git clone https://github.com/pandOSUnibo/docs
+            git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
             rm -rf docs/docs
             cp -r project/docs docs/docs
             cd docs

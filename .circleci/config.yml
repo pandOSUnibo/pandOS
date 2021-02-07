@@ -22,10 +22,9 @@ jobs:
   docs:
     docker:
     - image: cimg/go:1.8
-  steps:
-    - attach_workspace:
-        at: ./artifacts
     steps:
+      - attach_workspace:
+          at: ./artifacts
       - checkout
       - run:
           name: Transferring docs
@@ -41,7 +40,7 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
-            ghr -t ${GITHUB_PAT} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
+            ghr -t ${GITHUB_PAT} -u pandOS -r docs -c master -delete ${VERSION} ./artifacts/
             
 
 workflows:

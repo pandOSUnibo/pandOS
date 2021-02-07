@@ -12,8 +12,7 @@ import os
 # https://github.com/rtfd/readthedocs.org/issues/388
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
-  from subprocess import call 
-  call('cd .. && cd .. && doxygen')
+  os.system('cd .. && cd .. && doxygen')
 
 extensions = [
     'sphinx.ext.autodoc',

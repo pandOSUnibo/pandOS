@@ -32,15 +32,19 @@ jobs:
             rm -rf docs/docs
             cp -r project/docs docs/docs
             cd docs
-            git config --global user.email "you@example.com"
-            git config --global user.name "Your Name"
+            git config --global user.email "marrosamuele@gmail.com"
+            git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs"
-            git push origin master
+            git tag -a $CIRCLE_BRANCH
+            git push
             
 
 workflows:
   default:
     jobs:
-      - docs
+      - docs:
+          filters:
+            branches:
+              only: /\d+\.\d+\.\d+/$
       - build

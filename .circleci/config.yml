@@ -29,6 +29,8 @@ jobs:
       - run:
           name: Transferring docs folder
           command: |
+            sudo apt-add-repository universe
+            sudo apt-get update
             sudo apt-get install tree
             cd ..
             git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
@@ -40,8 +42,7 @@ jobs:
       - run:
           name: Preparing Generation
           command: |
-            sudo apt-add-repository universe
-            sudo apt-get update
+            
             sudo apt-get install doxygen
       - run:
           name: Generating docs

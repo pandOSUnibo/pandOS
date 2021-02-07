@@ -29,6 +29,11 @@ jobs:
       - run:
           name: Transferring docs
           command : |
+            sudo add-apt-repository ppa:ubuntu-lxc/lxd-stable
+            sudo apt-get update
+            sudo apt-get install golang
+            go get github.com/tcnksm/ghr
+            VERSION=%(CIRCLE_BRANCH)
             cd ..
             git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
             rm -rf docs/docs
@@ -38,9 +43,7 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
-            echo "Il commit funziona"
-            git tag -a $CIRCLE_BRANCH -m "Updated docs to version $CIRCLE_BRANCH" -f
-            git push --follow-tags
+            ghr -t ${PAT_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
             
 
 workflows:

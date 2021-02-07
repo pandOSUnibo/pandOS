@@ -44,8 +44,7 @@ jobs:
       - run:
           name: Generating docs
           command: |
-            cd ..
-            cd docs
+            cd ../docs/docs
             doxygen
             python make_source.py ../h source/
             cp -r extraSource/. source

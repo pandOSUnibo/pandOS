@@ -25,6 +25,11 @@ jobs:
     steps:
       - attach_workspace:
           at: ./artifacts
+      - run:
+          name: Setting up Working Folder
+          command : |
+            mkdir project
+            cd project
       - checkout
       - run:
           name: Transferring docs

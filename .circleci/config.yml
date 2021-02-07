@@ -40,7 +40,8 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
-            ghr -t $GITHUB_PAT}-u pandOSUnibo -r docs -c master $VERSION /tmp/artifacts/
+            echo $VERSION
+            ghr -t "${GITHUB_PAT}" -u pandOSUnibo -r docs -c master "${VERSION}" /tmp/artifacts/
             
 
 workflows:

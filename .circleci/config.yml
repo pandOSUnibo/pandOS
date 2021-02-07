@@ -40,7 +40,7 @@ jobs:
             git add --all
             git commit -am "Updated docs" --allow-empty
             echo "${CIRCLE_BRANCH}"
-            ghr -t "${GITHUB_PAT}" -u pandOSUnibo -r docs -c master "${CIRCLE_BRANCH}" /tmp/artifacts/
+            ghr -t "${GITHUB_PAT}" -u pandOSUnibo -r docs -c master "${CIRCLE_BRANCH}" -n "${CIRCLE_BRANCH}" /tmp/artifacts/
             git push
             
 

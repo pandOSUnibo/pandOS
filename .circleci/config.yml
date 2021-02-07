@@ -28,7 +28,7 @@ jobs:
       - checkout
       - run:
           name: Transferring docs folder
-          command : |
+          command: |
             cd ..
             git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
             rm -rf docs/docs
@@ -36,8 +36,12 @@ jobs:
             cp -r project/h docs/h
             cd docs
       - run:
+          name: Preparing Generation
+          command: |
+            apt-get install doxygen
+      - run:
           name: Generating docs
-          command : |
+          command: |
             cd docs
             doxygen
             python make_source.py ../h source/

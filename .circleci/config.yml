@@ -20,18 +20,16 @@ jobs:
             ./build.sh
 
   docs:
-    machine:
-      image: ubuntu-2004:202010-01
-    environment:
-      TERM: xterm
+    docker:
+    - image: cimg/go:1.8
+  steps:
+    - attach_workspace:
+        at: ./artifacts
     steps:
       - checkout
       - run:
           name: Transferring docs
           command : |
-            sudo add-apt-repository ppa:ubuntu-lxc/lxd-stable
-            sudo apt-get update
-            sudo apt-get install golang
             go get github.com/tcnksm/ghr
             VERSION=%(CIRCLE_BRANCH)
             cd ..
@@ -43,7 +41,7 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
-            ghr -t ${PAT_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
+            ghr -t ${GITHUB_PAT} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
             
 
 workflows:

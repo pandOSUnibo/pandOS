@@ -12,23 +12,12 @@ void initPcbs() {
     }
     pcbFree_table[MAXPROC - 1].p_next = NULL;
 }
-/**
- * @brief Return the pcb to memory.
- * The pcb can't be used anymore.
- * 
- * @param p pcb to be released
- */
+
 void freePcb(pcb_t *p) {
    p->p_next = pcbFree_h;
    pcbFree_h = p; 
 }
-/**
- * @brief Allocate a pcb and return it,
- * if no more memory is avaible return NULL.
- * All the records are cleaned before the allocation. 
- * 
- * @return pcb_t* 
- */
+
 pcb_t* allocPcb() {
     pcb_t *head = NULL;
     if(pcbFree_h != NULL){

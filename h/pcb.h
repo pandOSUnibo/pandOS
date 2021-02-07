@@ -6,8 +6,21 @@
 
 void initPcbs();
 
+/**
+ * @brief Return the pcb to memory.
+ * The pcb can't be used anymore.
+ * 
+ * @param p pcb to be released
+ */
 void freePcb(pcb_t *p);
 
+/**
+ * @brief Allocate a pcb and return it,
+ * if no more memory is avaible return NULL.
+ * All the records are cleaned before the allocation. 
+ * 
+ * @return pcb_t* 
+ */
 pcb_t* allocPcb();
 
 pcb_t* mkEmptyProcQ();

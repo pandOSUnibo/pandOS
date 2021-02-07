@@ -21,7 +21,7 @@ jobs:
 
   docs:
     docker:
-    - image: circleci/golang:1.8
+    - image: circleci/golang:1.9.7
     steps:
       - attach_workspace:
           at: /tmp/artifacts

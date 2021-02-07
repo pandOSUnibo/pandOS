@@ -39,7 +39,7 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
-            echo La branch e'
+            echo La branch e
             echo "${CIRCLE_BRANCH}"
             echo Senza parentesi
             echo $CIRCLE_BRANCH

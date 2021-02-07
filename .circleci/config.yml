@@ -38,7 +38,7 @@ jobs:
       - run:
           name: Preparing Generation
           command: |
-            apt-get install doxygen
+            sudo apt-get install doxygen
       - run:
           name: Generating docs
           command: |

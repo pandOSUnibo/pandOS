@@ -50,7 +50,9 @@ jobs:
           command: |
             cd docs
             doxygen
+            pwd
             python make_source.py ../h source/
+            pwd
             cp -r extraSource/. source
             cd ..
             pwd

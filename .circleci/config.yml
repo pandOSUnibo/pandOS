@@ -24,12 +24,7 @@ jobs:
     - image: circleci/golang:1.8
     steps:
       - attach_workspace:
-          at: ./artifacts
-      - run:
-          name: Setting up Working Folder
-          command : |
-            mkdir project
-            cd project
+          at: /tmp/artifacts
       - checkout
       - run:
           name: Transferring docs
@@ -45,7 +40,7 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
-            ghr -t ${GITHUB_PAT} -u pandOS -r docs -c master -delete ${VERSION} ./artifacts/
+            ghr -t ${GITHUB_PAT} -u pandOS -r docs -c master -delete ${VERSION} /tmp/artifacts/
             
 
 workflows:

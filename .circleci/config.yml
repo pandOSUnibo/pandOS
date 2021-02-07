@@ -36,6 +36,7 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
+            echo "Il commit funziona"
             git tag -a $CIRCLE_BRANCH -m "Updated docs to version $CIRCLE_BRANCH"
             git push --follow-tags
             

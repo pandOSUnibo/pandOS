@@ -29,11 +29,13 @@ jobs:
       - run:
           name: Transferring docs folder
           command: |
+            sudo apt-get install tree
             cd ..
             git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
             rm -rf docs/docs
             cp -r project/docs docs/docs
             cp -r project/h docs/h
+            tree
             cd docs
       - run:
           name: Preparing Generation
@@ -49,6 +51,7 @@ jobs:
             python make_source.py ../h source/
             cp -r extraSource/. source
             cd ..
+            tree
       - run:
           name: Finalizing Generations
           command: |
@@ -57,7 +60,7 @@ jobs:
       - run:
           name: Uploading docs
           command: |
-            sudo apt-get install tree
+            
             tree
             git config --global user.email "marrosamuele@gmail.com"
             git config --global user.name "Samuele Marro"

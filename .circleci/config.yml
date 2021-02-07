@@ -37,7 +37,7 @@ jobs:
             git add --all
             git commit -am "Updated docs"
             git tag -a $CIRCLE_BRANCH
-            git push
+            git push --follow-tags
             
 
 workflows:
@@ -45,6 +45,8 @@ workflows:
     jobs:
       - docs:
           filters:
-            branches:
+            tags:
               only: /\d+\.\d+\.\d+/$
+            branches:
+              ignore: /.*/
       - build

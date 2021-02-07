@@ -35,7 +35,7 @@ jobs:
             git config --global user.email "marrosamuele@gmail.com"
             git config --global user.name "Samuele Marro"
             git add --all
-            git commit -am "Updated docs"
+            git commit -am "Updated docs" --allow-empty
             git tag -a $CIRCLE_BRANCH
             git push --follow-tags
             

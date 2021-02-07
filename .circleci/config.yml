@@ -47,7 +47,8 @@ jobs:
             cd ../docs/docs
             doxygen
             python make_source.py ../h source/
-            cp -r extraSource/. source
+            cp -r extraSource/. source 2>/dev/null || :
+            rm -r extraSouce
             cd ..
             rm -r h
 

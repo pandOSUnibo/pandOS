@@ -4,10 +4,24 @@
 #include "pandos_const.h"
 #include "pandos_types.h"
 
+/**
+ * @brief Initializes the PCBs.
+ * 
+ */
 void initPcbs();
 
+/**
+ * @brief Frees a certain PCB.
+ * 
+ * @param p A pointer to the PCB to be freed.
+ */
 void freePcb(pcb_t *p);
 
+/**
+ * @brief Allocates a PCB.
+ * 
+ * @return pcb_t* A pointer to the allocated PCB.
+ */
 pcb_t *allocPcb();
 
 pcb_t *mkEmptyProcQ();

@@ -30,7 +30,7 @@ jobs:
           name: Transferring docs
           command : |
             go get github.com/tcnksm/ghr
-            VERSION=%(CIRCLE_BRANCH)
+            VERSION=$CIRCLE_BRANCH
             cd ..
             git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
             rm -rf docs/docs
@@ -40,7 +40,7 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
-            ghr -t ${GITHUB_PAT} -u pandOS -r docs -c master -delete ${VERSION} /tmp/artifacts/
+            ghr -t $GITHUB_PAT}-u pandOS -r docs -c master -delete $VERSION /tmp/artifacts/
             
 
 workflows:

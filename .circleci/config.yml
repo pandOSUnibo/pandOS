@@ -20,16 +20,15 @@ jobs:
             ./build.sh
 
   docs:
-    docker:
-    - image: circleci/golang:1.9.7
+    machine:
+      image: ubuntu-2004:202010-01
+    environment:
+      TERM: xterm
     steps:
-      - attach_workspace:
-          at: /tmp/artifacts
       - checkout
       - run:
           name: Transferring docs
           command : |
-            go get github.com/tcnksm/ghr
             cd ..
             git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
             rm -rf docs/docs
@@ -39,12 +38,8 @@ jobs:
             git config --global user.name "Samuele Marro"
             git add --all
             git commit -am "Updated docs" --allow-empty
-            echo La branch e
-            echo "${CIRCLE_BRANCH}"
-            echo Senza parentesi
-            echo $CIRCLE_BRANCH
-            ghr -t "${GITHUB_PAT}" -u pandOSUnibo -r docs -c master -n "${CIRCLE_BRANCH}" "${CIRCLE_BRANCH}" /tmp/artifacts/
-            git push
+            git tag -a "${CIRCLE_TAG}" -m "Updated docs to new version" -f
+            git push --follow-tags
             
 
 workflows:

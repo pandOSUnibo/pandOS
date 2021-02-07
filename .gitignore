@@ -58,3 +58,5 @@ appunti.md
 
 build
 umps3Config
+docs/source/*.rst
+docs/doxyxml

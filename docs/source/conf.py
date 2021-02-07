@@ -10,20 +10,24 @@ import os
 
 # hack for readthedocs to cause it to run doxygen first
 # https://github.com/rtfd/readthedocs.org/issues/388
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+"""on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
-  os.system('cd .. && doxygen')
+  os.system('cd .. && doxygen && cd docs')"""
 
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    'sphinx_rtd_theme',
     'breathe',
 ]
 
-# Breathe extension variables
-breathe_projects = { "pandOS": "doxyxml/" }
+root = '/'.join(os.getcwd().split('/')[:-2])
+
+breathe_projects = { "pandOS": root + '/docs/doxyxml' }
 breathe_default_project = "pandOS"
+
+# Breathe extension variables
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -88,7 +92,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

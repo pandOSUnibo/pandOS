@@ -1,20 +1,11 @@
-pandOS Documentation
-==================================
-
-
+pandOS is a library.
 
 .. toctree::
+   :caption: Modules:
+   :titlesonly:
    :maxdepth: 2
-   :caption: Contents:
-
-   license
-   style
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   
+   asl
+   pandos_const
+   pandos_types
+   pcb

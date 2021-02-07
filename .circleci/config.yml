@@ -27,13 +27,30 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Transferring docs
+          name: Transferring docs folder
           command : |
             cd ..
             git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
             rm -rf docs/docs
             cp -r project/docs docs/docs
+            cp -r project/h docs/h
             cd docs
+      - run:
+          name: Generating docs
+          command : |
+            cd docs
+            doxygen
+            python make_source.py ../h source/
+            cp -r extraSource/. source
+            cd ..
+      - run:
+          name: Finalizing Generations
+          command: |
+            rm -r h
+
+      - run:
+          name: Uploading docs
+          command: |
             git config --global user.email "marrosamuele@gmail.com"
             git config --global user.name "Samuele Marro"
             git add --all

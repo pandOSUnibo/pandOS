@@ -49,6 +49,8 @@ int emptyProcQ(pcb_t *tp) {
 
 pcb_t* headProcQ(pcb_t *tp){
     if (tp == NULL) return NULL;
+
+    // Previous element from tail is head
     return tp->p_prev;
 }
 

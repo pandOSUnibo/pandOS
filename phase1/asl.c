@@ -72,13 +72,18 @@ pcb_t* removeBlocked(int *semAdd) {
 pcb_t* outBlocked(pcb_t *p) {
     if (p == NULL) return NULL;
 
+    // Get pointer to previous and actual semaphore
+    // descriptor in ASL on which p is blocked
     semd_t *prev = findPrevSemd(p->p_semAdd);
     semd_t *element = prev->s_next;
 
     // Error condition: semaphore not in ASL
     if(element->s_semAdd != p->p_semAdd) return NULL;
 
+    // Remove p from the queue of the semaphore descriptor
     pcb_t *removed = outProcQ(&(element->s_procQ), p);
+
+    // If the queue becomes empty, remove the descriptor from ASL
     if (emptyProcQ(element->s_procQ)) {
         prev->s_next = element->s_next;
         element->s_next = semdFree_h;

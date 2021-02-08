@@ -152,7 +152,7 @@
 /* End of Mikeyg constants */
 
 
-#define MAXPOINT ((void *)0xFFFFFFFF)
-#define MINPOINT ((void *)0x00000000)
+#define MAXPOINT ((void *)0xFFFFFFFF) /*Maximum address of memory location*/
+#define MINPOINT ((void *)0x00000000) /*Minimum address of memory location*/
 
 #endif

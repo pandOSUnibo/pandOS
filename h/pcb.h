@@ -52,8 +52,22 @@ pcb_t* removeProcQ(pcb_t **tp);
  */
 pcb_t* outProcQ(pcb_t **tp, pcb_t *p);
 
+/**
+ * @brief Check whether the pcb pointed by p has children.
+ * 
+ * @param p Pointer to the pcb to be checked.
+ * @return TRUE if the pcb pointed by p doesn't have any
+ * children, FALSE otherwise.
+ */
 int emptyChild(pcb_t *p);
 
+/**
+ * @brief Insert the pcb pointed by p as a child of the
+ * pcb pointed by prnt.
+ * 
+ * @param prnt Pointer to the pcb who will become parent of p.
+ * @param p Pointer to the pcb who will become child of prnt.
+ */
 void insertChild(pcb_t *prnt, pcb_t *p);
 
 /**
@@ -66,6 +80,14 @@ void insertChild(pcb_t *prnt, pcb_t *p);
  */
 pcb_t* removeChild(pcb_t *p);
 
+/**
+ * @brief Remove and return the pcb pointed by p from the list of
+ * his parent's children.
+ * 
+ * @param p Pointer to the pcb that will be removed and returned.
+ * @return A pointer to the removed pcb. If the pcb pointed by p
+ * doesn't have any parent return NULL.
+ */
 pcb_t* outChild(pcb_t *p);
 
 #endif

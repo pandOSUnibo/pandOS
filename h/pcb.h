@@ -4,6 +4,10 @@
 #include "pandos_const.h"
 #include "pandos_types.h"
 
+/**
+ * @brief Initializes the PCBs.
+ * 
+ */
 void initPcbs();
 
 /**

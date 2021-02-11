@@ -7,6 +7,8 @@
 /**
  * @brief Initializes the PCBs.
  * 
+ * @remark This function should be called
+ * before any other PCB-related function.
  */
 void initPcbs();
 
@@ -27,14 +29,28 @@ void freePcb(pcb_t *p);
  */
 pcb_t* allocPcb();
 
+/**
+ * @brief Creates a new empty process queue.
+ * 
+ * @return The new process queue.
+ */
 pcb_t* mkEmptyProcQ();
 
+/**
+ * @brief Checks if a process queue is empty.
+ * 
+ * @param tp 
+ * @return TRUE if tp is empty, FALSE otherwise.
+ * 
+ * @remark TRUE and FALSE are defined in
+ * umps3/umps/const.h.
+ */
 int emptyProcQ(pcb_t *tp);
 
 void insertProcQ(pcb_t **tp, pcb_t *p);
 
 /**
- * @brief Return a pointer to the pcb that is the head 
+ * @brief Returns a pointer to the pcb that is the head 
  * of the process queue pointed by tp, without removing it. 
  * 
  * @param tp Pointer to the tail of the process queue to operate on.
@@ -46,7 +62,7 @@ pcb_t* headProcQ(pcb_t *tp);
 pcb_t* removeProcQ(pcb_t **tp);
 
 /**
- * @brief Remove and return the pcb pointed by p from the 
+ * @brief Removes and return the pcb pointed by p from the 
  * process queue pointed by tp.
  * 
  * @param tp Pointer to the pointer of the queue (sentinel).
@@ -57,7 +73,7 @@ pcb_t* removeProcQ(pcb_t **tp);
 pcb_t* outProcQ(pcb_t **tp, pcb_t *p);
 
 /**
- * @brief Check whether the pcb pointed by p has children.
+ * @brief Checks whether the pcb pointed by p has children.
  * 
  * @param p Pointer to the pcb to be checked.
  * @return TRUE if the pcb pointed by p doesn't have any
@@ -66,7 +82,7 @@ pcb_t* outProcQ(pcb_t **tp, pcb_t *p);
 int emptyChild(pcb_t *p);
 
 /**
- * @brief Insert the pcb pointed by p as a child of the
+ * @brief Inserts the pcb pointed by p as a child of the
  * pcb pointed by prnt.
  * 
  * @param prnt Pointer to the pcb who will become parent of p.
@@ -85,7 +101,7 @@ void insertChild(pcb_t *prnt, pcb_t *p);
 pcb_t* removeChild(pcb_t *p);
 
 /**
- * @brief Remove and return the pcb pointed by p from the list of
+ * @brief Removes and return the pcb pointed by p from the list of
  * his parent's children.
  * 
  * @param p Pointer to the pcb that will be removed and returned.

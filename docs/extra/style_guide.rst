@@ -96,6 +96,7 @@ should be a comment that summarizes what your function is doing, as in:
     }
 
 A couple notes:
+
 - All descriptions begin with an uppercase letter (except if the first word
   is a function name or other terms with specific casing);
 - Function descriptions use the third person: use "Computes"

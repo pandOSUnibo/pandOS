@@ -1,3 +1,6 @@
+pandOS
+======
+
 pandOS is an educational operating system designed for µMPS architectures.
 This documentation describes the implementation of pandOS by Luca Donno, Antonio Lopez, Samuele Marro and Edoardo Merli at University of Bologna.
 

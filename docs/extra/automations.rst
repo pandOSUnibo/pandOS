@@ -17,4 +17,4 @@ The documentation pages are generated from the source code using Doxygen,
 Breathe and Sphinx. It is possible to create additional pages by inserting them
 in docs/extra. The first part of the index page is contained in
 docs/index_head.rst. The latter part is generated from the source code.
-After a couple minutes, the new documentation will be available on `ReadTheDocs<https://pandos.readthedocs.io/>`.
+After a couple minutes, the new documentation will be available on `ReadTheDocs <https://pandos.readthedocs.io/>`.

@@ -62,7 +62,7 @@ Or this:
 
     float c = 5.0 / 9.0 * (f - 32.0); // Convert Fahrenheit to Celsius
 
-For documentation, use `Doxygen<https://www.doxygen.nl>`_'s format.
+For documentation, use `Doxygen <https://www.doxygen.nl>`_'s format.
 
 Atop your .c and .h files should be a comment that summarize what your
 program (or that particular file) does, as in:

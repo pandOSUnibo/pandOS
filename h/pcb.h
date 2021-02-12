@@ -11,7 +11,7 @@
 void initPcbs();
 
 /**
- * @brief Return the pcb to memory.
+ * @brief Returns the pcb to memory.
  * The pcb can't be used anymore.
  * 
  * @param p pcb to be released
@@ -19,8 +19,8 @@ void initPcbs();
 void freePcb(pcb_t *p);
 
 /**
- * @brief Allocate a pcb and return it,
- * if no more memory is available return NULL.
+ * @brief Allocates a pcb and returns it.
+ * If no more memory is available returns NULL.
  * All the records are cleaned before the allocation. 
  * 
  * @return pcb_t* 

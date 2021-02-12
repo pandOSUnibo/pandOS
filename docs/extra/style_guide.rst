@@ -1,5 +1,5 @@
-Style Guide for C
-=================
+Style Guide
+===========
 
 
 Line Length
@@ -88,12 +88,21 @@ should be a comment that summarizes what your function is doing, as in:
     /**
       * @brief Computes the square of n.
       * 
-      * @param n The number to be squared.
+      * @param n Number to be squared.
       * @return n squared.
       */
     int square(int n) {
         return n * n;
     }
+
+A couple notes:
+- All descriptions begin with an uppercase letter (except if the first word
+  is a function name or other terms with specific casing);
+- Function descriptions use the third person: use "Computes"
+  instead of "Compute";
+- There is no article at the beginning of parameter descriptions: use "Number to be squared"
+  instead of "The number to be squared"
+- Acronyms are all caps: use "PCB" instead of "pcb"
 
 Conditions
 ----------
@@ -233,9 +242,6 @@ code are inside of others. If you use your keyboard's Tab key to do so,
 be sure that your text editor's configured to convert tabs (``\t``) to
 four spaces, else your code may not print or display properly on someone
 else's computer, since ``\t`` renders differently in different editors.
-(If using `CS50 IDE <https://ide.cs50.io/>`__, it's fine to use Tab for
-indentation, rather than hitting your keyboard's space bar repeatedly,
-since we've preconfigured it to convert ``\t`` to four spaces.)
 
 Here's some nicely indented code:
 

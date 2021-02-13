@@ -3,6 +3,7 @@
 
 #define MAXSEMD MAXPROC + 2
 /**
+ * @struct semd_t
  * @brief Semaphore definition.
  * 
  */

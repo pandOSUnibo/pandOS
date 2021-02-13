@@ -1,6 +1,6 @@
 /**
  * @file pandos_const.h
- * @brief This header file contains utility constants & macro definitions.
+ * @brief This header file contains utility constants and macro definitions.
  * 
  */
 

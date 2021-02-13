@@ -1,16 +1,31 @@
 #include "pcb.h"
 #include <umps3/umps/const.h>
 
+/**
+ * @brief A static array containing all
+ * possible process descriptors.
+ * 
+ */
 HIDDEN pcb_t pcbFree_table[MAXPROC];
+/**
+ * @brief List of all free process
+ * descriptors.
+ * 
+ */
 HIDDEN pcb_t *pcbFree_h;
-
 
 void initPcbs() {
     pcbFree_h = &(pcbFree_table[0]);
+
+    // Create the pcbFree list
     for (int i = 0; i < MAXPROC - 1; ++i) {
         pcbFree_table[i].p_next = &(pcbFree_table[i + 1]);
     }
     pcbFree_table[MAXPROC - 1].p_next = NULL;
+
+    // The other fields of pcb_t are not
+    // initialized because they are handled
+    // by allocPcb()
 }
 
 void freePcb(pcb_t *p) {
@@ -93,7 +108,9 @@ pcb_t* outProcQ(pcb_t **tp, pcb_t *p){
 }
 
 void insertProcQ(pcb_t **tp, pcb_t *p) {
+    // Performs a head-insert
     if (*tp == NULL) {
+        // The list is empty
         *tp = p;
         p->p_prev = p;
         p->p_next = p;
@@ -131,7 +148,11 @@ int emptyChild(pcb_t *p) {
 }
 
 void insertChild(pcb_t *prnt, pcb_t *p) {
+    // Perform a head-insert to the children
+    // list
+
     if (prnt->p_child != NULL) {
+        // The children list is empty
         prnt->p_child->p_prev_sib = p;
     }
 
@@ -142,6 +163,9 @@ void insertChild(pcb_t *prnt, pcb_t *p) {
 }
 
 pcb_t* removeChild(pcb_t *p) {
+    // Perform a head-remove to the
+    // children list
+
     if (p->p_child == NULL) {
         return NULL;
     }
@@ -162,6 +186,7 @@ pcb_t* removeChild(pcb_t *p) {
 
 pcb_t* outChild(pcb_t *p) {
     if (p->p_prnt == NULL) {
+        // p has no parent
         return NULL;
     }
 
@@ -173,6 +198,8 @@ pcb_t* outChild(pcb_t *p) {
         p->p_next_sib->p_prev_sib = p->p_prev_sib;
     }
 
+    // If p was the first child, p->p_next_sib
+    // becomes the new first child
     if (p->p_prnt->p_child == p) {
         p->p_prnt->p_child = p->p_next_sib;
     }

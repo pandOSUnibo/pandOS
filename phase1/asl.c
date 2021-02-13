@@ -2,15 +2,14 @@
 #include "asl.h"
 
 #define MAXSEMD MAXPROC + 2
-
+/**
+ * @brief Semaphore definition
+ * 
+ */
 typedef struct semd_t {
-	/* ptr to next element on queue */
-	struct semd_t *s_next;
-	/* ptr to the semaphore */
-	int *s_semAdd;
-	/* ptr to tail of the queue of procs.
-	blocked on this sem. */
-	pcb_t *s_procQ;
+	struct semd_t *s_next; ///< Ptr to next element on queue 
+	int *s_semAdd;         ///< Ptr to the semaphore
+	pcb_t *s_procQ;        ///< Ptr to tail of the queue of procs. blocked on this sem.
 } semd_t;
 
 /**

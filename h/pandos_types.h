@@ -13,24 +13,26 @@
 typedef signed int cpu_t;
 typedef unsigned int memaddr;
 
-/* process table entry type */
+/**
+ * @brief Process control block
+ * 
+ */
 typedef struct pcb_t {
-	/* process queue fields */
-    struct pcb_t   *p_next;							/* ptr to next entry			*/
-    struct pcb_t   *p_prev; 						/* ptr to previous entry		*/
+	// Process queue fields
+    struct pcb_t   *p_next;							///< Ptr to next entry			
+    struct pcb_t   *p_prev; 						///< ptr to previous entry
 
-	/* process tree fields */
-	struct pcb_t	*p_prnt, 						/* ptr to parent				*/
-					*p_child,						/* ptr to 1st child				*/
-					*p_next_sib,					/* ptr to next sibling 			*/
-					*p_prev_sib;					/* ptr to prev. sibling			*/
+	// Process tree fields
+	struct pcb_t	*p_prnt, 						///< Ptr to parent				
+					*p_child,						///< Ptr to 1st child			
+					*p_next_sib,					///< Ptr to next sibling 		
+					*p_prev_sib;					///< Ptr to prev. sibling
 	
-	/* process status information */
-	state_t     p_s;              /* processor state        */
-	cpu_t p_time;				  /* cpu time used by proc */
-	int *p_semAdd;				  /* ptr to semaphore on */
-	/* which proc is blocked */
-	/* add more fields here */
+	// Process status information
+	state_t     p_s;              ///< Processor state        
+	cpu_t p_time;				  ///< Cpu time used by proc
+	int *p_semAdd;				  ///< Ptr to semaphore on which proc is blocked 
+	// Add more fields here 
 
 }  pcb_t, *pcb_PTR;
 	

@@ -35,10 +35,11 @@ void freePcb(pcb_t *p) {
 
 pcb_t* allocPcb() {
     pcb_t *head = NULL;
+    // Check for available memory
     if(pcbFree_h != NULL){
         head = pcbFree_h;
         pcbFree_h = head->p_next;
-        /*Clean pcb*/
+        // Clean pcb
         head->p_next = NULL;
         head->p_prev = NULL;
         head->p_prnt = NULL;

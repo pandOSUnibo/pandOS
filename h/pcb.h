@@ -13,7 +13,7 @@
 void initPcbs();
 
 /**
- * @brief Return the pcb to memory.
+ * @brief Returns the pcb to memory.
  * The pcb can't be used anymore.
  * 
  * @param p pcb to be released
@@ -21,8 +21,8 @@ void initPcbs();
 void freePcb(pcb_t *p);
 
 /**
- * @brief Allocate a pcb and return it,
- * if no more memory is avaible return NULL.
+ * @brief Allocates a pcb and returns it.
+ * If no more memory is available returns NULL.
  * All the records are cleaned before the allocation. 
  * 
  * @return pcb_t* 
@@ -47,6 +47,12 @@ pcb_t* mkEmptyProcQ();
  */
 int emptyProcQ(pcb_t *tp);
 
+/**
+ * @brief Inserts a pcb in a queue.
+ * 
+ * @param tp Pointer to the pointer of the queue (sentinel).
+ * @param p Pointer to the pcb to be inserted.
+ */
 void insertProcQ(pcb_t **tp, pcb_t *p);
 
 /**
@@ -59,6 +65,12 @@ void insertProcQ(pcb_t **tp, pcb_t *p);
  */
 pcb_t* headProcQ(pcb_t *tp);
 
+/**
+ * @brief Removes the head of the pcb queue.
+ * 
+ * @param tp Pointer to the queue (sentinel).
+ * @return A pointer to the removed pcb.
+ */
 pcb_t* removeProcQ(pcb_t **tp);
 
 /**

@@ -1,0 +1,75 @@
+version: 2.1
+jobs:
+  build:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - run:
+          name: Installing umps3
+          command: |
+            sudo add-apt-repository universe
+            sudo apt update
+            sudo add-apt-repository ppa:virtualsquare/umps
+            sudo apt update
+            sudo apt install umps3
+      - run:
+          name: Building
+          command : |
+            ./build.sh
+
+  docs:
+    machine:
+      image: ubuntu-2004:202010-01
+    environment:
+      TERM: xterm
+    steps:
+      - checkout
+      - run:
+          name: Installing requirements
+          command: |
+            sudo apt-add-repository universe
+            sudo apt-get update
+            sudo apt-get install doxygen
+      - run:
+          name: Transferring docs folder
+          command: |
+            cd ..
+            git clone https://$GITHUB_PAT@github.com/pandOSUnibo/docs.git
+            rm -rf docs/docs
+            cp -r project/docs docs/docs
+            cp -r project/h docs/h
+      - run:
+          name: Generating docs
+          command: |
+            cd ../docs/docs
+            doxygen
+            python make_source.py ../h source/
+            cp -r extra/. source 2>/dev/null || :
+            rm -rf extra
+            cd ..
+            rm -r h
+
+      - run:
+          name: Uploading docs
+          command: |
+            cd ..
+            cd docs
+            git config --global user.email "marrosamuele@gmail.com"
+            git config --global user.name "Samuele Marro"
+            git add --all
+            git commit -am "Updated docs to ${CIRCLE_TAG}" --allow-empty
+            git tag -a "${CIRCLE_TAG}" -m "Updated docs to ${CIRCLE_TAG}" -f
+            git push --follow-tags
+            
+
+workflows:
+  default:
+    jobs:
+      - docs:
+          filters:
+            tags:
+              only: /\d+\.\d+\.\d+$/
+            branches:
+              ignore: /.*/
+      - build

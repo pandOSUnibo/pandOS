@@ -1,15 +1,15 @@
+/**
+ * @file pandos_const.h
+ * @brief This header file contains utility constants and macro definitions.
+ * 
+ */
+
 #ifndef PANDOS_CONST_H_INCLUDED
 #define PANDOS_CONST_H_INCLUDED
 
-/****************************************************************************
- *
- * This header file contains utility constants & macro definitions.
- *
- ****************************************************************************/
-
 #include <umps3/umps/const.h>
 
-/* Mikeyg Added constants */
+// Mikeyg Added constants
 
 #define MAXPROC 20
 
@@ -35,7 +35,7 @@
 #define VSEMVIRT      20
 
 
-/* Status register constants */
+// Status register constants 
 #define ALLOFF      0x00000000
 #define USERPON     0x00000008
 #define IEPON       0x00000004
@@ -44,7 +44,7 @@
 #define TEBITON     0x08000000
 #define DISABLEINTS 0xFFFFFFFE
 
-/* Cause register constants */
+// Cause register constants
 #define GETEXECCODE    0x0000007C
 #define CLEAREXECCODE  0xFFFFFF00
 #define LOCALTIMERINT  0x00000200
@@ -62,13 +62,13 @@
 #define CAUSESHIFT     2
 
 
-/* EntryLO register (NDVG) constants */
+// EntryLO register (NDVG) constants
 #define DIRTYON  0x00000400
 #define VALIDON  0x00000200
 #define GLOBALON 0x00000100
 
 
-/* EntryHI register constants */
+// EntryHI register constants
 #define GETPAGENO     0x3FFFF000
 #define GETSHAREFLAG  0xC0000000
 #define VPNSHIFT      12
@@ -76,11 +76,11 @@
 #define SHAREDSEGFLAG 30
 
 
-/* Index register constants */
+//Index register constants
 #define PRESENTFLAG 0x80000000
 
 
-/* Device register constants */
+// Device register constants 
 #define DEV0ON 0x00000001
 #define DEV1ON 0x00000002
 #define DEV2ON 0x00000004
@@ -103,7 +103,7 @@
 #define BACKWRITE  2
 
 
-/* Memory Constants */
+// Memory Constants 
 #define UPROCSTARTADDR 0x800000B0
 #define USERSTACKTOP   0xC0000000
 #define KERNELSTACK    0x20001000
@@ -113,7 +113,7 @@
 #define PRIVATE 0x2
 
 
-/* Utility constants */
+// Utility constants 
 #define ON         1
 #define OFF        0
 #define OK         0
@@ -121,7 +121,7 @@
 #define BYTELENGTH 8
 
 #define PSECOND    100000
-#define TIMESLICE  5000 /* length of proc's time slice	*/
+#define TIMESLICE  5000     ///< Length of proc's time slice
 #define NEVER      0x7FFFFFFF
 #define SECOND     1000000
 #define STATESIZE  0x8C
@@ -149,7 +149,10 @@
 
 #define UPROCMAX 8
 #define POOLSIZE (UPROCMAX * 2)
-/* End of Mikeyg constants */
+// End of Mikeyg constants 
 
+
+#define MAXPOINT ((void *)0xFFFFFFFF) ///< Maximum address of memory location
+#define MINPOINT ((void *)0x00000000) ///< Minimum address of memory location
 
 #endif

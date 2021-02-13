@@ -53,3 +53,10 @@ dkms.conf
 
 # Custom
 umps3
+appunti.md
+.vscode
+
+build
+umps3Config
+docs/source/*.rst
+docs/doxyxml

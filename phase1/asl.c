@@ -1,7 +1,7 @@
 #include "pcb.h"
 #include "asl.h"
 
-#define MAXSEMD MAXPROC + 2
+#define MAXSEMD (MAXPROC + 2)
 /**
  * @struct semd_t
  * @brief Semaphore definition.

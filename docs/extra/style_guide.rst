@@ -67,8 +67,6 @@ program (or that particular file) does, as in:
       * @version 0.1.0
       * @date 2021-02-11
       * 
-      * @copyright Copyright (c) 2021
-      * 
       */
 
 Atop each of your functions (except, perhaps, ``main``), meanwhile,

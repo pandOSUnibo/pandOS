@@ -5,8 +5,6 @@
  * @version 0.1.0
  * @date 2021-02-13
  * 
- * @copyright Copyright (c) 2021
- * 
  */
 
 #ifndef ASL_H

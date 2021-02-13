@@ -38,8 +38,8 @@ void freePcb(pcb_t *p);
  * 
  * All the records are cleaned before the allocation. 
  * 
- * @return The allocated PCB if memory is available,
- * NULL otherwise.
+ * @return The allocated PCB. Returns NULL if memory
+ * is not available.
  */
 pcb_t* allocPcb();
 
@@ -75,7 +75,7 @@ void insertProcQ(pcb_t **tp, pcb_t *p);
  * 
  * @param tp Pointer to the tail of the process queue.
  * @return A pointer to the head of the queue.
- * If the queue is empty, returns NULL.
+ * Returns NULL if the queue is empty.
  */
 pcb_t* headProcQ(pcb_t *tp);
 
@@ -94,8 +94,7 @@ pcb_t* removeProcQ(pcb_t **tp);
  * @param tp Pointer to the queue (sentinel).
  * @param p Pointer to the PCB to be removed.
  * @return A pointer to the removed PCB.
- * If the PCB pointed by p is not in the queue,
- * returns NULL.
+ * Retuns NULL if the PCB pointed by p is not in the queue.
  */
 pcb_t* outProcQ(pcb_t **tp, pcb_t *p);
 
@@ -125,17 +124,17 @@ void insertChild(pcb_t *prnt, pcb_t *p);
  * 
  * @param p Pointer to the PCB whose first child will be removed.
  * @return A pointer to the first child of the PCB 
- * pointed by p. If p has no children return NULL.
+ * pointed by p. Returns NULL if p has no children.
  */
 pcb_t* removeChild(pcb_t *p);
 
 /**
- * @brief Removes and return the PCB pointed by p from the list of
+ * @brief Removes and returns the PCB pointed by p from the list of
  * his parent's children.
  * 
  * @param p Pointer to the PCB that will be removed and returned.
- * @return A pointer to the removed PCB. If the PCB pointed by p
- * doesn't have any parent return NULL.
+ * @return A pointer to the removed PCB. Returns NULL if the PCB
+ * pointed by p doesn't have a parent.
  */
 pcb_t* outChild(pcb_t *p);
 

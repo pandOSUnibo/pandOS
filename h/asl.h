@@ -37,8 +37,8 @@ int insertBlocked(int *semAdd, pcb_t *p);
  * @param semAdd Physical address of the process
  * queue.
  * @return The head of the process queue if a
- * descriptor with physical address semAdd was
- * found, NULL otherwise.
+ * descriptor with physical address semAdd. Returns
+ * NULL if the descriptor was not found.
  */
 pcb_t* removeBlocked(int *semAdd);
 
@@ -48,8 +48,8 @@ pcb_t* removeBlocked(int *semAdd);
  * 
  * @param p Pointer to the PCB to be removed.
  * @return A pointer to the removed PCB.
- * If the PCB pointed by p is not in the process queue
- * of his semaphore, returns NULL.
+ * Returns NULL if the PCB pointed by p is not in the process
+ * queue of its semaphore.
  */
 pcb_t* outBlocked(pcb_t *p);
 
@@ -59,7 +59,7 @@ pcb_t* outBlocked(pcb_t *p);
  * 
  * @param semAdd Semaphore identifier.
  * @return The head of the process list associated with the
- * semaphore semAdd. If the list is empty, returns NULL.
+ * semaphore semAdd. Returns NULL if the list is empty.
  */
 pcb_t* headBlocked(int *semAdd);
 

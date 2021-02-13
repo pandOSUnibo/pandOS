@@ -1,6 +1,13 @@
 Automations
 ===========
 
+Building
+--------
+
+Building is handled by CMake. Passing :code:`-DCOMPILE_DOC=ON` also
+generates the documentation in PDF format. build.sh runs all the commands
+required for compilation.
+
 Continuous Integration
 ----------------------
 

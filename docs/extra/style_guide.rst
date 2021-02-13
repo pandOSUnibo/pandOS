@@ -227,6 +227,7 @@ Indentation
 Indent using four spaces:
 
 .. code:: c
+
     // Print command-line arguments one per line
     printf("\n");
     for (int i = 0; i < argc; i++) {

@@ -2,7 +2,7 @@
  * @file pcb.h
  * @authors Luca Donno, Antonio Lopez, Samuele Marro, Edoardo Merli
  * @brief Process Control Block methods.
- * @version 0.1
+ * @version 0.1.0
  * @date 2021-02-13
  * 
  * @copyright Copyright (c) 2021

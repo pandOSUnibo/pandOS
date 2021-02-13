@@ -64,7 +64,7 @@ program (or that particular file) does, as in:
       * @file hitchkiker.c
       * @author Douglas Adams
       * @brief Finds the answer to everything. 
-      * @version 0.1
+      * @version 0.1.0
       * @date 2021-02-11
       * 
       * @copyright Copyright (c) 2021

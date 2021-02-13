@@ -1,3 +1,14 @@
+/**
+ * @file asl.h
+ * @authors Luca Donno, Antonio Lopez, Samuele Marro, Edoardo Merli
+ * @brief Active Semaphore List methods.
+ * @version 0.1
+ * @date 2021-02-13
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
+
 #ifndef ASL_H
 #define ASL_H
 
@@ -19,9 +30,9 @@
 int insertBlocked(int *semAdd, pcb_t *p);
 
 /**
- * @brief Removes the PCB at the head of the
- * process queue associated with the semaphore
- * with the given physical address
+ * @brief Removes the head of the process queue
+ * associated with the semaphore identified by
+ * the given physical address.
  * 
  * @param semAdd Physical address of the process
  * queue.
@@ -32,28 +43,28 @@ int insertBlocked(int *semAdd, pcb_t *p);
 pcb_t* removeBlocked(int *semAdd);
 
 /**
- * @brief Removes and returns the pcb pointed by p from the
+ * @brief Removes and returns the PCB pointed by p from the
  * process queue of the semaphore on which p is blocked.
  * 
- * @param p Pointer to the pcb to be removed.
- * @return A pointer to the removed pcb.
- * If the pcb pointed by p is not in the process queue
- * of his semaphore (error situation) returns NULL.
+ * @param p Pointer to the PCB to be removed.
+ * @return A pointer to the removed PCB.
+ * If the PCB pointed by p is not in the process queue
+ * of his semaphore, returns NULL.
  */
 pcb_t* outBlocked(pcb_t *p);
 
 /**
- * @brief Returns a pointer to the pcb that is the head of 
+ * @brief Returns a pointer to the head of the
  * process queue associated with semaphore semAdd.
  * 
- * @param semAdd Semaphore identifier
+ * @param semAdd Semaphore identifier.
  * @return The head of the process list associated with the
- * semaphore semAdd if it isn't empty, NULL otherwise.
+ * semaphore semAdd. If the list is empty, returns NULL.
  */
 pcb_t* headBlocked(int *semAdd);
 
 /**
- * @brief Initializes the ASLs.
+ * @brief Initializes the Active Semaphore List.
  * 
  * @remark This function should be called before any other
  * ASL-related function.

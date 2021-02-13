@@ -1,11 +1,11 @@
+/**
+ * @file pandos_const.h
+ * @brief This header file contains utility constants & macro definitions.
+ * 
+ */
+
 #ifndef PANDOS_CONST_H_INCLUDED
 #define PANDOS_CONST_H_INCLUDED
-
-/****************************************************************************
- *
- * This header file contains utility constants & macro definitions.
- *
- ****************************************************************************/
 
 #include <umps3/umps/const.h>
 

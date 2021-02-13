@@ -1,3 +1,14 @@
+/**
+ * @file pcb.h
+ * @authors Luca Donno, Antonio Lopez, Samuele Marro, Edoardo Merli
+ * @brief Process Control Block methods.
+ * @version 0.1
+ * @date 2021-02-13
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
+
 #ifndef PCB_H
 #define PCB_H
 
@@ -13,19 +24,22 @@
 void initPcbs();
 
 /**
- * @brief Returns the pcb to memory.
- * The pcb can't be used anymore.
+ * @brief Deallocates the PCB.
  * 
- * @param p pcb to be released
+ * @param p PCB to be released.
+ * 
+ * @remark After calling this function,
+ * the PCB can't be used anymore.
  */
 void freePcb(pcb_t *p);
 
 /**
- * @brief Allocates a pcb and returns it.
- * If no more memory is available returns NULL.
+ * @brief Allocates a PCB and returns it.
+ * 
  * All the records are cleaned before the allocation. 
  * 
- * @return pcb_t* 
+ * @return The allocated PCB if memory is available,
+ * NULL otherwise.
  */
 pcb_t* allocPcb();
 
@@ -39,7 +53,7 @@ pcb_t* mkEmptyProcQ();
 /**
  * @brief Checks if a process queue is empty.
  * 
- * @param tp 
+ * @param tp Queue to be checked.
  * @return TRUE if tp is empty, FALSE otherwise.
  * 
  * @remark TRUE and FALSE are defined in
@@ -48,76 +62,79 @@ pcb_t* mkEmptyProcQ();
 int emptyProcQ(pcb_t *tp);
 
 /**
- * @brief Inserts a pcb in a queue.
+ * @brief Inserts a PCB in a queue.
  * 
- * @param tp Pointer to the pointer of the queue (sentinel).
- * @param p Pointer to the pcb to be inserted.
+ * @param tp Pointer to the queue (sentinel).
+ * @param p Pointer to the PCB to be inserted.
  */
 void insertProcQ(pcb_t **tp, pcb_t *p);
 
 /**
- * @brief Returns a pointer to the pcb that is the head 
- * of the process queue pointed by tp, without removing it. 
+ * @brief Returns a pointer to the head of the
+ * process queue, without removing it. 
  * 
- * @param tp Pointer to the tail of the process queue to operate on.
- * @return A pointer to the process at the head position in the queue.
- * If the queue is empty (tp is NULL) return NULL
+ * @param tp Pointer to the tail of the process queue.
+ * @return A pointer to the head of the queue.
+ * If the queue is empty, returns NULL.
  */
 pcb_t* headProcQ(pcb_t *tp);
 
 /**
- * @brief Removes the head of the pcb queue.
+ * @brief Removes the head of the PCB queue.
  * 
  * @param tp Pointer to the queue (sentinel).
- * @return A pointer to the removed pcb.
+ * @return A pointer to the removed PCB.
  */
 pcb_t* removeProcQ(pcb_t **tp);
 
 /**
- * @brief Removes and return the pcb pointed by p from the 
- * process queue pointed by tp.
+ * @brief Removes the PCB pointed by p from the 
+ * process queue pointed by tp and returns it.
  * 
- * @param tp Pointer to the pointer of the queue (sentinel).
- * @param p Pointer to the pcb to be removed.
- * @return A pointer to the removed pcb.
- * If the pcb pointed by p is not in the queue return NULL.
+ * @param tp Pointer to the queue (sentinel).
+ * @param p Pointer to the PCB to be removed.
+ * @return A pointer to the removed PCB.
+ * If the PCB pointed by p is not in the queue,
+ * returns NULL.
  */
 pcb_t* outProcQ(pcb_t **tp, pcb_t *p);
 
 /**
- * @brief Checks whether the pcb pointed by p has children.
+ * @brief Checks whether the PCB pointed by p has children.
  * 
- * @param p Pointer to the pcb to be checked.
- * @return TRUE if the pcb pointed by p doesn't have any
+ * @param p Pointer to the PCB to be checked.
+ * @return TRUE if the PCB pointed by p doesn't have any
  * children, FALSE otherwise.
+ * @remark TRUE and FALSE are defined in
+ * umps3/umps/const.h.
  */
 int emptyChild(pcb_t *p);
 
 /**
- * @brief Inserts the pcb pointed by p as a child of the
- * pcb pointed by prnt.
+ * @brief Inserts the PCB pointed by p as a child of the
+ * PCB pointed by prnt.
  * 
- * @param prnt Pointer to the pcb who will become parent of p.
- * @param p Pointer to the pcb who will become child of prnt.
+ * @param prnt Pointer to the PCB who will become parent of p.
+ * @param p Pointer to the PCB who will become child of prnt.
  */
 void insertChild(pcb_t *prnt, pcb_t *p);
 
 /**
  * @brief Remove and return the first child of
- * the pcb pointed by p.
+ * the PCB pointed by p.
  * 
- * @param p Pointer to the pcb whose first child will be removed.
- * @return A pointer to the first child of the pcb
+ * @param p Pointer to the PCB whose first child will be removed.
+ * @return A pointer to the first child of the PCB 
  * pointed by p. If p has no children return NULL.
  */
 pcb_t* removeChild(pcb_t *p);
 
 /**
- * @brief Removes and return the pcb pointed by p from the list of
+ * @brief Removes and return the PCB pointed by p from the list of
  * his parent's children.
  * 
- * @param p Pointer to the pcb that will be removed and returned.
- * @return A pointer to the removed pcb. If the pcb pointed by p
+ * @param p Pointer to the PCB that will be removed and returned.
+ * @return A pointer to the removed PCB. If the PCB pointed by p
  * doesn't have any parent return NULL.
  */
 pcb_t* outChild(pcb_t *p);

@@ -18,15 +18,10 @@ on older computer terminals, which could display 24 lines vertically and
     int second_collected_integer_value_from_user = get_int("Another integer please: ");
     int product_of_the_two_integer_values_from_user = first_collected_integer_value_from_user * second_collected_integer_value_from_user;
 
-In other languages, particularly JavaScript, it is significantly more
-difficult to constrain lines to a maximum length; there, your goal
-should instead be to break up lines (as via ``\n``) in locations that
-maximize readability and clarity.
-
 Comments
 --------
 
-Within functions, use "inline comments".
+Within functions, use "inline" comments.
 Place the comment above the line(s) to which it applies. No need to
 write in full sentences, but do capitalize the comment's first word
 (unless it's the name of a function, variable, or the like), and do
@@ -98,8 +93,9 @@ A couple notes:
 - Function descriptions use the third person: use "Computes"
   instead of "Compute";
 - There is no article at the beginning of parameter descriptions: use "Number to be squared"
-  instead of "The number to be squared"
-- Acronyms are all caps: use "PCB" instead of "pcb"
+  instead of "The number to be squared" (this rule does not apply to @return);
+- The return type is not specified;
+- Acronyms are all caps: use "PCB" instead of "pcb".
 
 Conditions
 ----------
@@ -177,11 +173,9 @@ to declare ``main`` with:
 
     }
 
-or, if using the CS50 Library, with:
+or with:
 
-.. code:: c
-
-    #include <cs50.h>
+.. code:
 
     int main(int argc, string argv[]) {
 
@@ -227,21 +221,12 @@ or with:
 
     }
 
-As for your own functions, be sure to define them similiarly, with each
-curly brace on its own line and with the return type on the same line as
-the function's name, just as we've done with ``main``.
+Use camelCase for function names.
 
 Indentation
 -----------
 
-Indent your code four spaces at a time to make clear which blocks of
-code are inside of others. If you use your keyboard's Tab key to do so,
-be sure that your text editor's configured to convert tabs (``\t``) to
-four spaces, else your code may not print or display properly on someone
-else's computer, since ``\t`` renders differently in different editors.
-
-Here's some nicely indented code:
-
+Indent using four spaces:
 .. code:: c
 
     // Print command-line arguments one per line
@@ -273,9 +258,6 @@ readable:
         }
     }
 
-If you need more than three variables for iteration, it might be time to
-rethink your design!
-
 while
 ~~~~~
 
@@ -289,11 +271,11 @@ Declare ``while`` loops as follows:
 
 Notice how:
 
--  each curly brace is on its own line;
--  there's a single space after ``while``;
--  there isn't any space immediately after the ``(`` or immediately
+-  Each curly brace is on its own line;
+-  There's a single space after ``while``;
+-  There isn't any space immediately after the ``(`` or immediately
    before the ``)``; and
--  the loop's body (a comment in this case) is indented with 4 spaces.
+-  The loop's body (a comment in this case) is indented with 4 spaces.
 
 do ... while
 ~~~~~~~~~~~~
@@ -309,11 +291,11 @@ Declare ``do ... while`` loops as follows:
 
 Notice how:
 
--  each curly brace is on its own line;
--  there's a single space after ``while``;
--  there isn't any space immediately after the ``(`` or immediately
+-  Each curly brace is on its own line;
+-  There's a single space after ``while``;
+-  There isn't any space immediately after the ``(`` or immediately
    before the ``)``; and
--  the loop's body (a comment in this case) is indented with 4 spaces.
+-  The loop's body (a comment in this case) is indented with 4 spaces.
 
 Pointers
 --------
@@ -333,7 +315,7 @@ Don't write it next to the type, as in:
 Variables
 ---------
 
-Because CS50 uses `C99 <http://en.wikipedia.org/wiki/C99>`__, do not
+Following `C99 <http://en.wikipedia.org/wiki/C99>`__, do not
 define all of your variables at the very top of your functions but,
 rather, when and where you actually need them. Moreover, scope your
 variables as tightly as possible. For instance, if ``i`` is only needed
@@ -347,10 +329,8 @@ for the sake of a loop, declare ``i`` within the loop itself:
 
 Though it's fine to use variables like ``i``, ``j``, and ``k`` for
 iteration, most of your variables should be more specifically named. If
-you're summing some values, for instance, call your variable ``sum``. If
-your variable's name warrants two words (e.g., ``is_ready``), put an
-underscore between them, a convention popular in C though less so in
-other languages.
+you're summing some values, for instance, call your variable ``sum``.
+Name your variables using snake_case.
 
 If declaring multiple variables of the same type at once, it's fine to
 declare them together, as in:

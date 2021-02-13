@@ -3,13 +3,15 @@
 
 #define MAXSEMD MAXPROC + 2
 /**
- * @brief Semaphore definition
+ * @brief Semaphore definition.
  * 
  */
 typedef struct semd_t {
-	struct semd_t *s_next; ///< Ptr to next element on queue 
-	int *s_semAdd;         ///< Ptr to the semaphore
-	pcb_t *s_procQ;        ///< Ptr to tail of the queue of procs. blocked on this sem.
+    struct semd_t *s_next; ///< Pointer to next element on queue.
+    int *s_semAdd;         ///< Pointer to the semaphore.
+    
+    pcb_t *s_procQ; ///< Pointer to tail of the queue of processes
+                    ///< blocked on this semaphore.    
 } semd_t;
 
 /**
@@ -22,6 +24,9 @@ HIDDEN semd_t semd_table[MAXSEMD];
 /**
  * @brief List containing all free
  * semaphore descriptors.
+ * 
+ * @remark Contains two dummy nodes
+ * for better management.
  * 
  */
 HIDDEN semd_t *semdFree_h;

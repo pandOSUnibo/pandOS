@@ -39,7 +39,7 @@ pcb_t* allocPcb() {
     if(pcbFree_h != NULL){
         head = pcbFree_h;
         pcbFree_h = head->p_next;
-        // Clean pcb
+        // Clean PCB 
         head->p_next = NULL;
         head->p_prev = NULL;
         head->p_prnt = NULL;
@@ -86,7 +86,7 @@ pcb_t* outProcQ(pcb_t **tp, pcb_t *p){
 
     } while (toRemove != *tp);
 
-    // Case of pcb not in given queue
+    // Case of PCB not in given queue
     if (!found) return NULL;
 
     // Case of circular list with single element
@@ -96,7 +96,7 @@ pcb_t* outProcQ(pcb_t **tp, pcb_t *p){
         // Case of element to be removed pointed by sentinel (first element)
         if (toRemove == *tp) *tp = (*tp)->p_next;
 
-        // Changing pointers of previous and next pcbs in the list
+        // Changing pointers of previous and next PCBs in the list
         toRemove->p_prev->p_next = toRemove->p_next;
         toRemove->p_next->p_prev = toRemove->p_prev;
     }

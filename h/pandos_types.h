@@ -18,6 +18,18 @@ typedef signed int cpu_t;
  */
 typedef unsigned int memaddr;
 
+typedef struct context_t {
+    unsigned int c_stackPtr;
+    unsigned int c_status;
+    unsigned int c_pc;
+} context_t;
+
+typedef struct support_t {
+    int       sup_asid;             ///< process ID
+    state_t   sup_exceptState[2];   ///< old state exceptions
+    context_t sup_exceptContext[2]; ///< new contexts for passing up
+} support_t;
+
 /**
  * @struct pcb_t
  * @brief Process Control Block.
@@ -36,15 +48,16 @@ typedef struct pcb_t {
     // Process tree fields
     struct pcb_t    *p_prnt,         ///< Pointer to parent.
                     *p_child,        ///< Pointer to 1st child.
-                    *p_next_sib,    ///< Pointer to next sibling         
+                    *p_next_sib,    ///< Pointer to next sibling. 
                     *p_prev_sib;    ///< Pointer to previous sibling.
-    
+
     // Process status information
     state_t     p_s;    ///< Processor state.
     cpu_t p_time;    ///< Cpu time used by process.
     int *p_semAdd;    ///< Pointer to semaphore on which process is blocked.
-    // Add more fields here 
+    support_t *p_supportStruct; ///< Support structure.
+    // Add more fields here
 
-}  pcb_t, *pcb_PTR;
-    
+} pcb_t, *pcb_PTR;
+
 #endif

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_TOOLCHAIN_FILE ./toolchain.cmake)
 SET (CMAKE_C_COMPILER_WORKS 1)
-project(kernel VERSION 0.1.0 LANGUAGES C)
+project(kernel VERSION 0.2.0 LANGUAGES C)
 
 # Option for generating the docs
 option(COMPILE_DOC "Compile the documentation in pdf" OFF)
@@ -34,6 +34,7 @@ add_custom_target(crtso ALL
 #Add source folders
 add_subdirectory(./testers)
 add_subdirectory(./phase1)
+add_subdirectory(./phase2)
 
 #Add dependecies
 add_dependencies(${PROJECT_NAME} testers.o libumps crtso)

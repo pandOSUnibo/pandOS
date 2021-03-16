@@ -18,4 +18,9 @@
 #define TLBSP_START KERNELSTACK
 #define EXCSP_START KERNELSTACK
 
+#define SEMAPHORE int
+#define DEVICE_ISTANCES 8
+
+int main(void);
+
 #endif

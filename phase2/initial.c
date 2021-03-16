@@ -8,7 +8,15 @@ unsigned int softBlockCount;
 pcb_t *readyQueue;
 pcb_t *currentProcess;
 
-// TODO: Dispositivi
+SEMAPHORE semDisk[DEVICE_ISTANCES];
+SEMAPHORE semFlash[DEVICE_ISTANCES];
+SEMAPHORE semNetwork[DEVICE_ISTANCES];
+SEMAPHORE semPrinter[DEVICE_ISTANCES];
+SEMAPHORE semTerminalTrans[DEVICE_ISTANCES];
+SEMAPHORE semTerminalRecv[DEVICE_ISTANCES];
+SEMAPHORE semIntTimer;
+
+// TODO: Verificare se il modo di dichiarare le variabili globali è corretto (cursed)
 
 // TODO: allocPcb non inizializza p_s
 
@@ -21,7 +29,8 @@ int main(void) {
     passupvector_t *passUpVector = (passupvector_t*) PASSVEC_LOCATION;
     passUpVector->tlb_refill_handler = (memaddr) &uTLB_RefillHandler;
     passUpVector->tlb_refill_stackPtr = (memaddr) TLBSP_START;
-    passUpVector->exception_handler = (memaddr)  fooBar;
+    // TODO: Capire cosa assegnare
+    // passUpVector->exception_handler = (memaddr)  fooBar;
     passUpVector->tlb_refill_stackPtr = (memaddr) EXCSP_START;
 
     // Initialize the Level 2 structures
@@ -29,23 +38,26 @@ int main(void) {
     initASL();
 
     // Initialize global variables
-    processCount = 0;
-    softBlockCount = 0;
     readyQueue = mkEmptyProcQ();
     currentProcess = NULL;
 
-    // TODO: Load timer
+    // processCount, softBlockCount and device semaphores are
+    // automatically initialized at compile time
+
+    // Load Interval Timer
+    LDIT(100000UL);
 
     // Instantiate first process
     // allocPcb sets all the process fields to their default value
     pcb_t *process = allocPcb();
     processCount++;
     process->p_s.status = IEPON | TEBITON;
-    // TODO: missing RAMBASESIZE declaration
     RAMTOP(process->p_s.reg_sp);
     
     process->p_s.pc_epc = (memaddr) &test;
     process->p_s.reg_t9 = (memaddr) &test;
 
-    // TODO: call the scheduler
+    insertProcQ(&readyQueue, process);
+
+    schedule();
 }

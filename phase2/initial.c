@@ -1,6 +1,7 @@
 #include "asl.h"
 #include "pcb.h"
 #include "initial.h"
+#include "scheduler.h"
 #include <umps3/umps/libumps.h>
 
 unsigned int processCount;
@@ -21,8 +22,8 @@ SEMAPHORE semIntTimer;
 // TODO: allocPcb non inizializza p_s
 
 // TODO: Trovare dove va messo
-extern void test;
-extern void uTLB_RefillHandler;
+extern void test();
+extern void uTLB_RefillHandler();
 
 int main(void) {
     // Initialize the Pass Up Vector
@@ -60,4 +61,5 @@ int main(void) {
     insertProcQ(&readyQueue, process);
 
     schedule();
+    return 1;
 }

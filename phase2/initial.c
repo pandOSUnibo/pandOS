@@ -19,6 +19,8 @@ SEMAPHORE semTerminalTrans[DEVICE_ISTANCES];
 SEMAPHORE semTerminalRecv[DEVICE_ISTANCES];
 SEMAPHORE semIntTimer;
 
+// TODO: Mettere quanto più possibile HIDDEN
+
 // TODO: Trovare dove va messo
 extern void test();
 extern void uTLB_RefillHandler();

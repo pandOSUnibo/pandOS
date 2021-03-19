@@ -1,22 +1,110 @@
 #include "exceptions.h"
-#include "types.h"
 #include "pandos_const.h"
 #include <umps3/umps/libumps.h>
 
-void exceptionHandler() {
+#define EXCSTATE ((state_t *) BIOSDATAPAGE)
 
-    state_t exceptionState = *((state_t *) BIOSDATAPAGE);
-    unsigned int cause = (exceptionState.cause & GETEXECCODE) >> 2;
+void passUpOrDie(int index) {
+    support_t *supportStructure = currentProcess->p_supportStruct;
+    if (supportStructure == NULL) {
+        // TODO: Gestire come Syscall 2 (kill)
+    }
+    else {
+        supportStructure->sup_exceptState[index] = *EXCSTATE;
+        context_t *context = &(supportStructure->sup_exceptContext[index]);
+        LDCXT(context->c_stackPtr, context->c_status, context->c_pc);
+    }
+}
+
+void* memcpy(void *dest, const void *src, size_t len) {
+    char *d = dest;
+    const char *s = src;
+    while (len--) {
+        *d++ = *s++;
+    }
+    return dest;
+}
+
+void interruptsHandler(){}
+
+HIDDEN void TLBExceptionHandler() {
+    passUpOrDie(PGFAULTEXCEPT);
+}
+
+void trapHandler() {
     
+}
+
+void syscallHandler(unsigned int KUp) {
+    unsigned int sysId = EXCSTATE->reg_a0;
+    // Get arguments for syscalls
+    unsigned int arg1 = EXCSTATE->reg_a1;
+    unsigned int arg2 = EXCSTATE->reg_a2;
+    unsigned int arg3 = EXCSTATE->reg_a3;
+
+    if (sysId <= 8) {
+        // KUp is 0 in kernel mode and 0x00000008
+        // in user mode
+        if (KUp == 0) {
+            switch (sysId){
+                case CREATEPROCESS:
+                    createProcess((state_t *) arg1, (support_t *)arg2, arg3);
+                    break;
+                case TERMPROCESS:
+                    termProcess();
+                    break;
+                case PASSEREN:
+                    passaren((int *) arg1);
+                    break;
+                case VERHOGEN:
+                    verhogen((int *) arg1);
+                    break;
+                case IOWAIT:
+                    ioWait(arg1, arg2, arg3);
+                    break;
+                case GETTIME:
+                    getTime();
+                    break;
+                case CLOCKWAIT:
+                    clockWait();
+                    break;
+                case GETSUPPORTPTR:
+                    getSupportPtr();
+                    break;
+                default:
+                    PANIC();
+                    break;
+            }
+        }
+        else {
+            // Attempted to perform a kernel syscall
+            // while in user mode. Call a trap with cause
+            // RI (Reserved Instruction)
+            EXCSTATE->cause &= ~GETEXECCODE;
+            EXCSTATE->cause |= RI << CAUSESHIFT;
+            trapHandler();
+        }
+    }
+    else {
+        // Pass to the Support Level
+        passUpOrDie(GENERALEXCEPT);
+    }
+}
+
+void exceptionHandler() {
+    // TODO: Controllare se il contenuto di BIOSDATAPAGE cambia
+    state_t *exceptionState = EXCSTATE;
+    unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
+
     switch (cause) {
         case INT:
             // Interrupt
+            interruptsHandler();
             break;
         case MOD:
         case TLBL:
         case TLBS:
-            // TLB-Refill events
-            uTLB_RefillHandler();
+            TLBExceptionHandler();
             break;
         case ADEL:
         case ADES:
@@ -27,9 +115,11 @@ void exceptionHandler() {
         case CPU:
         case OV:
             // Traps
+            trapHandler();
             break;
         case SYS:
             // Syscalls
+            syscallHandler(exceptionState->status & USERPON);
             break;
         default:
             PANIC();

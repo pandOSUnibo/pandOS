@@ -15,7 +15,7 @@ void exceptionHandler() {
         case MOD:
         case TLBL:
         case TLBS:
-        // TLB-Refill events
+            // TLB-Refill events
             uTLB_RefillHandler();
             break;
         case ADEL:

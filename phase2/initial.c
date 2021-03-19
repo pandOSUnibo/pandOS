@@ -3,6 +3,7 @@
 #include "pcb.h"
 #include "initial.h"
 #include "exceptions.h"
+#include "scheduler.h"
 #include <umps3/umps/libumps.h>
 
 unsigned int processCount;
@@ -58,4 +59,5 @@ int main(void) {
 
     // Call the scheduler
     schedule();
+    return 1;
 }

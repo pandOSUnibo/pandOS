@@ -6,6 +6,8 @@ project(kernel VERSION 0.2.0 LANGUAGES C)
 
 # Option for generating the docs
 option(COMPILE_DOC "Compile the documentation in pdf" OFF)
+set(PHASE CACHE STRING "Phase to compile") 
+
 if(COMPILE_DOC)
     add_custom_target(DOC ALL 
         COMMAND cd ${PROJECT_SOURCE_DIR}/docs &&
@@ -13,10 +15,18 @@ if(COMPILE_DOC)
         python3 make_source.py ../h ./source/ &&
         make latexpdf)
 endif()
+#Checks what phase to compile
+if(PHASE STREQUAL "phase1")
+    set(TARGET_PATH ./testers/)
+    set(TARGET tester)
+else()
+    set(TARGET_PATH ./phase2/)
+    set(TARGET phase2)
+endif()
 
 #Generate kernel
 add_custom_target(${PROJECT_NAME} ALL
-    COMMAND ${LD} -o ${PROJECT_NAME} ./testers/testers.o libumps.o crtso.o -T ${UMPS3_DATA_DIR}/umpscore.ldscript  ${LD_FLAGS})
+    COMMAND ${LD} -o ${PROJECT_NAME} ${TARGET_PATH}${TARGET} libumps.o crtso.o -T ${UMPS3_DATA_DIR}/umpscore.ldscript  ${LD_FLAGS})
 
 #Generate kernel.core and kernel.stab
 add_custom_target(kernel_umps ALL
@@ -37,5 +47,5 @@ add_subdirectory(./phase1)
 add_subdirectory(./phase2)
 
 #Add dependecies
-add_dependencies(${PROJECT_NAME} testers.o libumps crtso)
+add_dependencies(${PROJECT_NAME} ${TARGET} libumps crtso)
 add_dependencies(kernel_umps kernel)

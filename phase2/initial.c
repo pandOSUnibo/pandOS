@@ -1,6 +1,8 @@
+
 #include "asl.h"
 #include "pcb.h"
 #include "initial.h"
+#include "exceptions.h"
 #include <umps3/umps/libumps.h>
 
 unsigned int processCount;
@@ -16,21 +18,16 @@ SEMAPHORE semTerminalTrans[DEVICE_ISTANCES];
 SEMAPHORE semTerminalRecv[DEVICE_ISTANCES];
 SEMAPHORE semIntTimer;
 
-// TODO: Verificare se il modo di dichiarare le variabili globali è corretto (cursed)
-
-// TODO: allocPcb non inizializza p_s
-
 // TODO: Trovare dove va messo
-extern void test;
-extern void uTLB_RefillHandler;
+extern void test();
+extern void uTLB_RefillHandler();
 
 int main(void) {
     // Initialize the Pass Up Vector
     passupvector_t *passUpVector = (passupvector_t*) PASSVEC_LOCATION;
     passUpVector->tlb_refill_handler = (memaddr) &uTLB_RefillHandler;
     passUpVector->tlb_refill_stackPtr = (memaddr) TLBSP_START;
-    // TODO: Capire cosa assegnare
-    // passUpVector->exception_handler = (memaddr)  fooBar;
+    passUpVector->exception_handler = (memaddr) exceptionHandler;
     passUpVector->tlb_refill_stackPtr = (memaddr) EXCSP_START;
 
     // Initialize the Level 2 structures
@@ -59,5 +56,6 @@ int main(void) {
 
     insertProcQ(&readyQueue, process);
 
+    // Call the scheduler
     schedule();
 }

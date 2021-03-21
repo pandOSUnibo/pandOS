@@ -128,6 +128,8 @@ void syscallHandler(unsigned int KUp) {
 void passeren(int *semAdd) {
     *semAdd -= 1;
     if(*semAdd < 0) {
+        //currentProcess->p_s = *EXCSTATE;
+        // update del CPU time
         insertBlocked(semAdd, currentProcess);
         schedule();
     }
@@ -147,7 +149,7 @@ void exceptionHandler() {
     // Increment the PC by one word so that when control returns to the
     // process, it does not perform a syscall again
     exceptionState->pc_epc += WORDLEN;
-    currentProcess->p_s = *exceptionState;
+    currentProcess->p_s = *exceptionState; //anche per le non bloccanti?
 
     switch (cause) {
         case INT:

@@ -10,9 +10,12 @@
 void passUpOrDie(int index) {
     support_t *supportStructure = currentProcess->p_supportStruct;
     if (supportStructure == NULL) {
-        // TODO: Gestire come Syscall 2 (kill)
+        // Die: Kill the process using a termProcess-like call
+        termProcess();
+
     }
     else {
+        // Pass up the exception to the Support Level
         supportStructure->sup_exceptState[index] = *EXCSTATE;
         context_t *context = &(supportStructure->sup_exceptContext[index]);
         LDCXT(context->c_stackPtr, context->c_status, context->c_pc);
@@ -29,7 +32,7 @@ void* memcpy(void *dest, const void *src, size_t len) {
 }
 
 void resume() {
-    LDST(&(currentProcess->p_s));
+    LDST(EXCSTATE);
 }
 
 void interruptsHandler(){}
@@ -54,18 +57,51 @@ void termProcessRecursive(pcb_t *p) {
     freePcb(p);
 }
 
+// SYS2
 void termProcess() {
     termProcessRecursive(currentProcess);
-    // TODO: Is it necessary?
+    // currentProcess will be overwritten by the scheduler
+    // but for good practice we remove the dangling reference
     currentProcess = NULL;
 
     // Pass control to the scheduler
     schedule();
 }
 
+// SYS3
+void passeren(int *semAdd) {
+    if(*semAdd > 0) {
+        *semAdd -= 1;
+    } else {
+        currentProcess->p_s = *EXCSTATE;
+        // update del CPU time
+        insertBlocked(semAdd, currentProcess);
+        schedule();
+    }
+}
+
+// SYS4
+void verhogen(int *semAdd){
+    if(headBlocked(semAdd) != NULL) {
+        // Process to be waked up
+        pcb_t *unblockedProcess = removeBlocked(semAdd);
+        // Added to the ready queue
+        insertProcQ(&readyQueue, unblockedProcess);
+    }
+    else{
+        *semAdd += 1;
+    }
+}
+
+// SYS6
 void getTime(cpu_t *resultAddress) {
     *resultAddress = currentProcess->p_time;
-    resume();
+}
+
+
+// SYS7
+void clockWait() {
+    passeren(&semIntTimer);
 }
 
 void syscallHandler(unsigned int KUp) {
@@ -109,6 +145,10 @@ void syscallHandler(unsigned int KUp) {
                     PANIC();
                     break;
             }
+
+            // The process was not blocked or put in the ready
+            // queue
+            resume();
         }
         else {
             // Attempted to perform a kernel syscall
@@ -125,31 +165,16 @@ void syscallHandler(unsigned int KUp) {
     }
 }
 
-void passeren(int *semAdd) {
-    *semAdd -= 1;
-    if(*semAdd < 0) {
-        //currentProcess->p_s = *EXCSTATE;
-        // update del CPU time
-        insertBlocked(semAdd, currentProcess);
-        schedule();
-    }
-}
-
-void clockWait() {
-    passeren(&semIntTimer);
-}
-
 void exceptionHandler() {
     // TODO: Controllare se il contenuto di BIOSDATAPAGE cambia
     state_t *exceptionState = EXCSTATE;
     unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
 
-    // TODO: Controllare correttezza. Al massimo si può salvaare
+    // TODO: Controllare correttezza. Al massimo si può salvare
     // localmente lo state_t
     // Increment the PC by one word so that when control returns to the
     // process, it does not perform a syscall again
     exceptionState->pc_epc += WORDLEN;
-    currentProcess->p_s = *exceptionState; //anche per le non bloccanti?
 
     switch (cause) {
         case INT:

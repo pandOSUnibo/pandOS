@@ -14,9 +14,13 @@ jobs:
             sudo apt update
             sudo apt install umps3
       - run:
-          name: Building
+          name: Building Phase 1
           command : |
-            ./build.sh
+            ./build.sh phase1
+      - run:
+          name: Building Phase 2
+          command : |
+            ./build.sh phase2
 
   docs:
     machine:

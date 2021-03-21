@@ -60,4 +60,6 @@ typedef struct pcb_t {
 
 } pcb_t, *pcb_PTR;
 
+typedef unsigned int size_t;
+
 #endif

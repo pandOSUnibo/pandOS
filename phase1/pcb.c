@@ -36,9 +36,10 @@ void freePcb(pcb_t *p) {
 pcb_t* allocPcb() {
     pcb_t *head = NULL;
     // Check for available memory
-    if(pcbFree_h != NULL){
+    if (pcbFree_h != NULL){
         head = pcbFree_h;
         pcbFree_h = head->p_next;
+        
         // Clean PCB 
         head->p_next = NULL;
         head->p_prev = NULL;
@@ -48,6 +49,20 @@ pcb_t* allocPcb() {
         head->p_prev_sib = NULL;
         head->p_semAdd = NULL;
         head->p_time = 0;
+        
+        // Clean p_s
+        head->p_s.cause = 0;
+        head->p_s.entry_hi = 0;
+        for (int i = 0; i < STATE_GPR_LEN; ++i) {
+            head->p_s.gpr[i] = 0;
+        }
+        head->p_s.hi = 0;
+        head->p_s.lo = 0;
+        head->p_s.pc_epc = 0;
+        head->p_s.status = 0;
+
+        // Clean p_supportStruct
+        head->p_supportStruct = NULL;
     }
     return head;
 }

@@ -1,5 +1,6 @@
 #include "exceptions.h"
 #include "pandos_const.h"
+#include "asl.h"
 #include <umps3/umps/libumps.h>
 
 #define EXCSTATE ((state_t *) BIOSDATAPAGE)
@@ -89,6 +90,18 @@ void syscallHandler(unsigned int KUp) {
         // Pass to the Support Level
         passUpOrDie(GENERALEXCEPT);
     }
+}
+
+void passeren(int *semAdd) {
+    *semAdd -= 1;
+    if(*semAdd < 0) {
+        insertBlocked(semAdd, currentProcess);
+        schedule();
+    }
+}
+
+void clockWait() {
+    passeren(&semIntTimer);
 }
 
 void exceptionHandler() {

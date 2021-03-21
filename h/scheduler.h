@@ -12,6 +12,8 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
+extern cpu_t sliceStart;
+
 void schedule();
 
 #endif

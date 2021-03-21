@@ -3,14 +3,12 @@
 
 #include "initial.h"
 #include "pcb.h"
+#include "scheduler.h"
 #include <umps3/umps/libumps.h>
 
 #define MUSEC_TO_TICKS(T)         (T) * (*((cpu_t *) TIMESCALEADDR))
 
-extern unsigned int processCount;
-extern unsigned int softBlockCount;
-extern pcb_t *readyQueue;
-extern pcb_t *currentProcess;
+cpu_t sliceStart;
 
 void schedule() {
     if(emptyProcQ(readyQueue)) {
@@ -44,6 +42,9 @@ void schedule() {
 
     // Load 5ms on the PLT
     setTIMER(MUSEC_TO_TICKS(5000UL));
+
+    // Save the time slice beginning time
+    STCK(sliceStart);
 
     // Load active processor state
     LDST(&(currentProcess->p_s));

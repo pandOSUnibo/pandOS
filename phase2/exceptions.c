@@ -7,6 +7,14 @@
 
 #define EXCSTATE ((state_t *) BIOSDATAPAGE)
 
+// Returns the real time since the beginning of the
+// time slice
+cpu_t elapsedTime() {
+    cpu_t clockTime;
+    STCK(clockTime);
+    return clockTime - sliceStart;
+}
+
 void passUpOrDie(int index) {
     support_t *supportStructure = currentProcess->p_supportStruct;
     if (supportStructure == NULL) {
@@ -45,6 +53,28 @@ void trapHandler() {
     
 }
 
+/**
+ * @brief SYS1: creates a new process using the state and the support structures provided.
+ * If no memory is available an error code -1 is placed in the caller's v0 register, otherwise 0.
+ * 
+ * @param statep Initial state of the new process.
+ * @param supportp Support structure used from the SupportLevel.
+ * 
+ */
+void createProcess(state_t *statep, support_t *supportp) {
+    pcb_t *newProc = allocPcb();
+    unsigned int retValue = -1;
+    if (newProc != NULL){
+        newProc->p_supportStruct = supportp;
+        newProc->p_s = *statep;
+        insertChild(currentProcess, newProc);
+        insertProcQ(&readyQueue, newProc);
+        retValue = 1;
+    }
+    EXCSTATE->reg_v0 = retValue;
+    resume();
+}
+
 void termProcessRecursive(pcb_t *p) {
     pcb_t *child;
     
@@ -74,14 +104,14 @@ void passeren(int *semAdd) {
         *semAdd -= 1;
     } else {
         currentProcess->p_s = *EXCSTATE;
-        // update del CPU time
+        currentProcess->p_time += elapsedTime();
         insertBlocked(semAdd, currentProcess);
         schedule();
     }
 }
 
 // SYS4
-void verhogen(int *semAdd){
+void verhogen(int *semAdd) {
     if(headBlocked(semAdd) != NULL) {
         // Process to be waked up
         pcb_t *unblockedProcess = removeBlocked(semAdd);
@@ -93,46 +123,8 @@ void verhogen(int *semAdd){
     }
 }
 
-// SYS6
-void getTime(cpu_t *resultAddress) {
-    *resultAddress = currentProcess->p_time;
-}
-
-
-// SYS7
-void clockWait() {
-    passeren(&semIntTimer);
-}
-
-/**
- * @brief SYS1: creates a new process using the state and the support structures provided.
- * If no memory is available an error code -1 is placed in the caller's v0 register, otherwise 0.
- * 
- * @param statep Initial state of the new process.
- * @param supportp Support structure used from the SupportLevel.
- * 
- */
-void createProcess(state_t *statep, support_t * supportp){
-    pcb_t *newProc = allocPcb();
-    unsigned int retValue = -1;
-    if (newProc != NULL){
-        newProc->p_supportStruct = supportp;
-        newProc->p_s = *statep;
-        insertChild(currentProcess, newProc);
-        insertProcQ(&readyQueue, newProc);
-        retValue = 1;
-    }
-    EXCSTATE->reg_v0 = retValue;
-    EXCSTATE->pc_epc += WORDLEN; 
-    LDST(EXCSTATE);
-}
-
-void blockProcess(int *sem){
-    passaren(sem);
-    // TODO: controllare se passaren blocca sempre sul semaforo
-    // in caso negativo questa funzione è inutile.
-    insertBlocked(sem, currentProcess);
-}
+// TODO: L'handler dell'interrupt
+// dovrà salvare in v0
 
 /**
  * @brief SYS5: Wait for an I/O operation. It performs a P operation on the semaphore
@@ -145,35 +137,30 @@ void blockProcess(int *sem){
 void ioWait(int intlNo, int dNum, int waitForTermRead){
     // Save the process state
     currentProcess->p_s = *EXCSTATE;
-    currentProcess->p_time += TIMESLICE - getTIMER();
-    currentProcess->p_s.pc_epc += WORDLEN;
 
     // Select the correct semaphore
-    switch (intlNo)
-    {
+    switch (intlNo){
     case DISKINT:
-        blockProcess(&semDisk[dNum]);
+        passeren(&semDisk[dNum]);
         break;
     case FLASHINT:
-        blockProcess(&semFlash[dNum]);
+        passeren(&semFlash[dNum]);
         break;
     case NETWINT:
-        blockProcess(&semNetwork[dNum]);
+        passeren(&semNetwork[dNum]);
         break;
     case PRNTINT:
-        blockProcess(&semPrinter[dNum]);
+        passeren(&semPrinter[dNum]);
         break;
     case TERMINT:
         if (waitForTermRead)
-            blockProcess(&semTerminalRecv[dNum]);
+            passeren(&semTerminalRecv[dNum]);
         else
-            blockProcess(&semTerminalTrans[dNum]);
+            passeren(&semTerminalTrans[dNum]);
         break;
     default:
         break;
     }
-    // TODO mantenere solo se passaren non blocca sul semaforo.
-    schedule();
 }
 
 void syscallHandler(unsigned int KUp) {
@@ -196,7 +183,7 @@ void syscallHandler(unsigned int KUp) {
                     termProcess();
                     break;
                 case PASSEREN:
-                    passaren((int *) arg1);
+                    passeren((int *) arg1);
                     break;
                 case VERHOGEN:
                     verhogen((int *) arg1);
@@ -211,7 +198,7 @@ void syscallHandler(unsigned int KUp) {
                     clockWait();
                     break;
                 case GETSUPPORTPTR:
-                    getSupportPtr();
+                    getSupportPtr((support_t *)resultAddress);
                     break;
                 default:
                     PANIC();
@@ -237,9 +224,47 @@ void syscallHandler(unsigned int KUp) {
     }
 }
 
+// SYS6
+// Note: we return the real time (using TOD)
+void getTime(cpu_t *resultAddress) {
+    *resultAddress = currentProcess->p_time + elapsedTime();
+}
+
+
+// SYS7
+void clockWait() {
+    passeren(&semIntTimer);
+}
+
+// SYS8
+void getSupportPtr(support_t *resultAddress) {
+    *resultAddress = *(currentProcess->p_supportStruct);
+}
+
+void breakPoint1(){
+    
+}
+
+void breakPoint2(){
+    
+}
+void breakPoint3(){
+    
+}
+void breakPoint4(){
+    
+}
+
 void exceptionHandler() {
     // TODO: Controllare se il contenuto di BIOSDATAPAGE cambia
+    breakPoint1();
     state_t *exceptionState = EXCSTATE;
+    breakPoint2();
+    exceptionState->cause & GETEXECCODE;
+    breakPoint3();
+    (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
+    breakPoint4();
+
     unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
 
     // TODO: Controllare correttezza. Al massimo si può salvare

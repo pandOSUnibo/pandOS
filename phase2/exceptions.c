@@ -104,6 +104,78 @@ void clockWait() {
     passeren(&semIntTimer);
 }
 
+/**
+ * @brief SYS1: creates a new process using the state and the support structures provided.
+ * If no memory is available an error code -1 is placed in the caller's v0 register, otherwise 0.
+ * 
+ * @param statep Initial state of the new process.
+ * @param supportp Support structure used from the SupportLevel.
+ * 
+ */
+void createProcess(state_t *statep, support_t * supportp){
+    pcb_t *newProc = allocPcb();
+    unsigned int retValue = -1;
+    if (newProc != NULL){
+        newProc->p_supportStruct = supportp;
+        newProc->p_s = *statep;
+        insertChild(currentProcess, newProc);
+        insertProcQ(&readyQueue, newProc);
+        retValue = 1;
+    }
+    EXCSTATE->reg_v0 = retValue;
+    EXCSTATE->pc_epc += WORDLEN; 
+    LDST(EXCSTATE);
+}
+
+void blockProcess(int *sem){
+    passaren(sem);
+    // TODO: controllare se passaren blocca sempre sul semaforo
+    // in caso negativo questa funzione è inutile.
+    insertBlocked(sem, currentProcess);
+}
+
+/**
+ * @brief SYS5: Wait for an I/O operation. It performs a P operation on the semaphore
+ * of the selected (sub)device. The process state is saved and the scheduler is called.
+ * 
+ * @param intlNo Interrupt line number [3..7].
+ * @param dNum  Device number [0..7].
+ * @param waitForTermRead Terminal read or write.
+ */
+void ioWait(int intlNo, int dNum, int waitForTermRead){
+    // Save the process state
+    currentProcess->p_s = *EXCSTATE;
+    currentProcess->p_time += TIMESLICE - getTIMER();
+    currentProcess->p_s.pc_epc += WORDLEN;
+
+    // Select the correct semaphore
+    switch (intlNo)
+    {
+    case DISKINT:
+        blockProcess(&semDisk[dNum]);
+        break;
+    case FLASHINT:
+        blockProcess(&semFlash[dNum]);
+        break;
+    case NETWINT:
+        blockProcess(&semNetwork[dNum]);
+        break;
+    case PRNTINT:
+        blockProcess(&semPrinter[dNum]);
+        break;
+    case TERMINT:
+        if (waitForTermRead)
+            blockProcess(&semTerminalRecv[dNum]);
+        else
+            blockProcess(&semTerminalTrans[dNum]);
+        break;
+    default:
+        break;
+    }
+    // TODO mantenere solo se passaren non blocca sul semaforo.
+    schedule();
+}
+
 void syscallHandler(unsigned int KUp) {
     unsigned int sysId = EXCSTATE->reg_a0;
     // Get arguments for syscalls
@@ -118,7 +190,7 @@ void syscallHandler(unsigned int KUp) {
         if (KUp == 0) {
             switch (sysId){
                 case CREATEPROCESS:
-                    createProcess((state_t *) arg1, (support_t *)arg2, arg3);
+                    createProcess((state_t *) arg1, (support_t *)arg2);
                     break;
                 case TERMPROCESS:
                     termProcess();

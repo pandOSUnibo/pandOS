@@ -3,9 +3,12 @@
 #include "asl.h"
 #include "pcb.h"
 #include "scheduler.h"
+#include "interrupts.h"
 #include <umps3/umps/libumps.h>
 
 #define EXCSTATE ((state_t *) BIOSDATAPAGE)
+
+// TODO: Considerare se mettere le syscalls in un file separato
 
 // Returns the real time since the beginning of the
 // time slice
@@ -42,8 +45,6 @@ void* memcpy(void *dest, const void *src, size_t len) {
 void resume() {
     LDST(EXCSTATE);
 }
-
-void interruptsHandler(){}
 
 HIDDEN void TLBExceptionHandler() {
     passUpOrDie(PGFAULTEXCEPT);
@@ -147,27 +148,27 @@ void ioWait(int intlNo, int dNum, int waitForTermRead){
     softBlockCount++;
 
     // Select the correct semaphore
-    switch (intlNo){
-    case DISKINT:
-        passeren(&semDisk[dNum]);
-        break;
-    case FLASHINT:
-        passeren(&semFlash[dNum]);
-        break;
-    case NETWINT:
-        passeren(&semNetwork[dNum]);
-        break;
-    case PRNTINT:
-        passeren(&semPrinter[dNum]);
-        break;
-    case TERMINT:
-        if (waitForTermRead)
-            passeren(&semTerminalRecv[dNum]);
-        else
-            passeren(&semTerminalTrans[dNum]);
-        break;
-    default:
-        break;
+    switch (intlNo) {
+        case DISKINT:
+            passeren(&semDisk[dNum]);
+            break;
+        case FLASHINT:
+            passeren(&semFlash[dNum]);
+            break;
+        case NETWINT:
+            passeren(&semNetwork[dNum]);
+            break;
+        case PRNTINT:
+            passeren(&semPrinter[dNum]);
+            break;
+        case TERMINT:
+            if (waitForTermRead)
+                passeren(&semTerminalRecv[dNum]);
+            else
+                passeren(&semTerminalTrans[dNum]);
+            break;
+        default:
+            break;
     }
 }
 
@@ -200,7 +201,7 @@ void syscallHandler(unsigned int KUp) {
         // KUp is 0 in kernel mode and 0x00000008
         // in user mode
         if (KUp == 0) {
-            switch (sysId){
+            switch (sysId) {
                 case CREATEPROCESS:
                     createProcess((state_t *) arg1, (support_t *)arg2);
                     break;
@@ -265,7 +266,7 @@ void exceptionHandler() {
     switch (cause) {
         case INT:
             // Interrupt
-            interruptsHandler();
+            interruptsHandler(exceptionState);
             break;
         case MOD:
         case TLBL:

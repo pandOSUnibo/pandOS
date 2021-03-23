@@ -14,5 +14,6 @@
 
 #include "initial.h"
 
+void interruptsHandler();
 
 #endif

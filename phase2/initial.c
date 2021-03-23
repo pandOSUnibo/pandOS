@@ -11,13 +11,20 @@ unsigned int softBlockCount;
 pcb_t *readyQueue;
 pcb_t *currentProcess;
 
-SEMAPHORE semDisk[DEVICE_ISTANCES];
-SEMAPHORE semFlash[DEVICE_ISTANCES];
-SEMAPHORE semNetwork[DEVICE_ISTANCES];
-SEMAPHORE semPrinter[DEVICE_ISTANCES];
-SEMAPHORE semTerminalTrans[DEVICE_ISTANCES];
-SEMAPHORE semTerminalRecv[DEVICE_ISTANCES];
-SEMAPHORE semIntTimer;
+// TODO: Struct dei semafori, softBlockedCount
+
+semaphore semDisk[DEVICE_ISTANCES];
+semaphore semFlash[DEVICE_ISTANCES];
+semaphore semNetwork[DEVICE_ISTANCES];
+semaphore semPrinter[DEVICE_ISTANCES];
+semaphore semTerminalTrans[DEVICE_ISTANCES];
+semaphore semTerminalRecv[DEVICE_ISTANCES];
+semaphore semIntTimer;
+
+void isDevice(semaphore* semAdd) {
+    // TODO: Finire
+    (&semIntTimer + 8)[2];
+}
 
 // TODO: Mettere quanto più possibile HIDDEN
 

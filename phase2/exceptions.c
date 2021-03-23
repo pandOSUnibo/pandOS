@@ -50,7 +50,7 @@ HIDDEN void TLBExceptionHandler() {
 }
 
 void trapHandler() {
-    
+    passUporDie(GENERALEXCEPT);
 }
 
 /**
@@ -84,11 +84,18 @@ void termProcessRecursive(pcb_t *p) {
     }
 
     // Handle the process itself
+
+    // If the process is blocked on a semaphore queue, remove it
+    if (p->p_semAdd != NULL) {
+        outBlocked(p);
+    }
     freePcb(p);
+    processCount--;
 }
 
 // SYS2
 void termProcess() {
+    outChild(currentProcess);
     termProcessRecursive(currentProcess);
     // currentProcess will be overwritten by the scheduler
     // but for good practice we remove the dangling reference
@@ -137,6 +144,7 @@ void verhogen(int *semAdd) {
 void ioWait(int intlNo, int dNum, int waitForTermRead){
     // Save the process state
     currentProcess->p_s = *EXCSTATE;
+    softBlockCount++;
 
     // Select the correct semaphore
     switch (intlNo){
@@ -161,6 +169,23 @@ void ioWait(int intlNo, int dNum, int waitForTermRead){
     default:
         break;
     }
+}
+
+// SYS6
+// Note: we return the real time (using TOD)
+void getTime(cpu_t *resultAddress) {
+    *resultAddress = currentProcess->p_time + elapsedTime();
+}
+
+
+// SYS7
+void clockWait() {
+    passeren(&semIntTimer);
+}
+
+// SYS8
+void getSupportPtr(support_t *resultAddress) {
+    *resultAddress = *(currentProcess->p_supportStruct);
 }
 
 void syscallHandler(unsigned int KUp) {
@@ -224,46 +249,10 @@ void syscallHandler(unsigned int KUp) {
     }
 }
 
-// SYS6
-// Note: we return the real time (using TOD)
-void getTime(cpu_t *resultAddress) {
-    *resultAddress = currentProcess->p_time + elapsedTime();
-}
-
-
-// SYS7
-void clockWait() {
-    passeren(&semIntTimer);
-}
-
-// SYS8
-void getSupportPtr(support_t *resultAddress) {
-    *resultAddress = *(currentProcess->p_supportStruct);
-}
-
-void breakPoint1(){
-    
-}
-
-void breakPoint2(){
-    
-}
-void breakPoint3(){
-    
-}
-void breakPoint4(){
-    
-}
 
 void exceptionHandler() {
     // TODO: Controllare se il contenuto di BIOSDATAPAGE cambia
-    breakPoint1();
     state_t *exceptionState = EXCSTATE;
-    breakPoint2();
-    exceptionState->cause & GETEXECCODE;
-    breakPoint3();
-    (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
-    breakPoint4();
 
     unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
 

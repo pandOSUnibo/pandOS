@@ -14,6 +14,6 @@
 
 #include "initial.h"
 
-void interruptsHandler();
+void interruptsHandler(state_t *exceptionState);
 
 #endif

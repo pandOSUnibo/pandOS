@@ -20,19 +20,15 @@
 #define EXCSP_START KERNELSTACK
 
 typedef int semaphore;
-#define DEVICE_ISTANCES 8
+#define DEVICE_TYPES   6
+#define DEVICE_INSTANCES 8
 
 extern unsigned int processCount;
 extern unsigned int softBlockCount;
 extern pcb_t *readyQueue;
 extern pcb_t *currentProcess;
 
-extern semaphore semDisk[DEVICE_ISTANCES];
-extern semaphore semFlash[DEVICE_ISTANCES];
-extern semaphore semNetwork[DEVICE_ISTANCES];
-extern semaphore semPrinter[DEVICE_ISTANCES];
-extern semaphore semTerminalTrans[DEVICE_ISTANCES];
-extern semaphore semTerminalRecv[DEVICE_ISTANCES];
+extern semaphore semDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 extern semaphore semIntTimer;
 
 int main(void);

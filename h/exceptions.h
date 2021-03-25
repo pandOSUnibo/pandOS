@@ -26,7 +26,14 @@
 #define CPU 11 ///< Coprocessor Unusable Exception
 #define OV 12 ///< Arithmetic Overflow Exception
 
+
 #include "initial.h"
+
+#define EXCSTATE ((state_t *) BIOSDATAPAGE)
+
+void resume();
+
+pcb_t* verhogen(int *semAdd);
 
 void exceptionHandler();
 

@@ -1,12 +1,12 @@
 #include "exceptions.h"
 #include "pandos_const.h"
+#include "pandos_types.h"
 #include "asl.h"
 #include "pcb.h"
 #include "scheduler.h"
 #include "interrupts.h"
 #include <umps3/umps/libumps.h>
 
-#define EXCSTATE ((state_t *) BIOSDATAPAGE)
 
 // TODO: Considerare se mettere le syscalls in un file separato
 
@@ -73,7 +73,6 @@ void createProcess(state_t *statep, support_t *supportp) {
         retValue = 1;
     }
     EXCSTATE->reg_v0 = retValue;
-    resume();
 }
 
 void termProcessRecursive(pcb_t *p) {
@@ -119,16 +118,16 @@ void passeren(int *semAdd) {
 }
 
 // SYS4
-void verhogen(int *semAdd) {
+pcb_t* verhogen(int *semAdd) {
+    pcb_t *unblockedProcess = NULL;
     if(headBlocked(semAdd) != NULL) {
         // Process to be waked up
-        pcb_t *unblockedProcess = removeBlocked(semAdd);
-        // Added to the ready queue
-        insertProcQ(&readyQueue, unblockedProcess);
+        unblockedProcess = removeBlocked(&semAdd);
     }
     else{
         *semAdd += 1;
     }
+    return unblockedProcess;
 }
 
 // TODO: L'handler dell'interrupt
@@ -142,7 +141,7 @@ void verhogen(int *semAdd) {
  * @param dNum  Device number [0..7].
  * @param waitForTermRead Terminal read or write.
  */
-void ioWait(int intlNo, int dNum, int waitForTermRead){
+void ioWait(int intlNo, int dNum, bool waitForTermRead) {
     // Save the process state
     currentProcess->p_s = *EXCSTATE;
     softBlockCount++;
@@ -150,24 +149,20 @@ void ioWait(int intlNo, int dNum, int waitForTermRead){
     // Select the correct semaphore
     switch (intlNo) {
         case DISKINT:
-            passeren(&semDisk[dNum]);
-            break;
         case FLASHINT:
-            passeren(&semFlash[dNum]);
-            break;
         case NETWINT:
-            passeren(&semNetwork[dNum]);
-            break;
         case PRNTINT:
-            passeren(&semPrinter[dNum]);
+            passeren(&semDevices[intlNo-3][dNum]);
             break;
         case TERMINT:
             if (waitForTermRead)
-                passeren(&semTerminalRecv[dNum]);
+                passeren(&semDevices[4][dNum]);
             else
-                passeren(&semTerminalTrans[dNum]);
+                passeren(&semDevices[5][dNum]);
             break;
         default:
+            // Invalid interrupt line: kill
+            termProcess();
             break;
     }
 }
@@ -227,7 +222,8 @@ void syscallHandler(unsigned int KUp) {
                     getSupportPtr((support_t *)resultAddress);
                     break;
                 default:
-                    PANIC();
+                    // Invalid SYSCALL ID: Kill
+                    termProcess();
                     break;
             }
 
@@ -291,5 +287,5 @@ void exceptionHandler() {
         default:
             PANIC();
             break;
-    };
+    }
 }

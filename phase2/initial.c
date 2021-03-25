@@ -11,14 +11,9 @@ unsigned int softBlockCount;
 pcb_t *readyQueue;
 pcb_t *currentProcess;
 
-// TODO: Struct dei semafori, softBlockedCount
+// TODO: softBlockedCount
 
-semaphore semDisk[DEVICE_ISTANCES];
-semaphore semFlash[DEVICE_ISTANCES];
-semaphore semNetwork[DEVICE_ISTANCES];
-semaphore semPrinter[DEVICE_ISTANCES];
-semaphore semTerminalTrans[DEVICE_ISTANCES];
-semaphore semTerminalRecv[DEVICE_ISTANCES];
+semaphore semDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 semaphore semIntTimer;
 
 void isDevice(semaphore* semAdd) {

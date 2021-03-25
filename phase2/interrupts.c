@@ -39,6 +39,7 @@ int mapToInt(unsigned int map) {
 void unblockLoad(int deviceType, int instanceID, unsigned int statusCode) {
     pcb_t *unblockedProc;
     unblockedProc = verhogen(&(semDevices[deviceType][instanceID]));
+    
     if(unblockedProc != NULL) {
         unblockedProc->p_s.reg_v0 = statusCode;
         insertProcQ(&readyQueue, unblockedProc);

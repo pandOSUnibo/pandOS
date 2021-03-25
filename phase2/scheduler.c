@@ -6,8 +6,6 @@
 #include "scheduler.h"
 #include <umps3/umps/libumps.h>
 
-#define MUSEC_TO_TICKS(T)         (T) * (*((cpu_t *) TIMESCALEADDR))
-
 cpu_t sliceStart;
 
 void schedule() {

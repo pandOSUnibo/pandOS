@@ -12,6 +12,8 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
+#define MUSEC_TO_TICKS(T)         (T) * (*((cpu_t *) TIMESCALEADDR))
+
 extern cpu_t sliceStart;
 
 void schedule();

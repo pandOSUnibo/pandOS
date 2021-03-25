@@ -51,7 +51,7 @@ HIDDEN void TLBExceptionHandler() {
 }
 
 void trapHandler() {
-    passUporDie(GENERALEXCEPT);
+    passUpOrDie(GENERALEXCEPT);
 }
 
 /**
@@ -84,11 +84,22 @@ void termProcessRecursive(pcb_t *p) {
     }
 
     // Handle the process itself
+    
+    // A process is blocked on a device if the semaphore is
+    // semIntTimer or an element of semDevices
+    bool blockedOnDevice = 
+    (p->p_semAdd >= semDevices &&
+    p->p_semAdd < semDevices + sizeof(semaphore) * DEVICE_TYPES * DEVICE_INSTANCES) 
+    || p->p_semAdd == semIntTimer;
 
-    // If the process is blocked on a semaphore queue, remove it
-    if (p->p_semAdd != NULL) {
-        outBlocked(p);
+    // If the process is blocked on a user semaphore, remove it
+    outBlocked(p);
+
+    // For device processes, 
+    if (!blockedOnDevice) {
+        *(p->p_semAdd)++;
     }
+
     freePcb(p);
     processCount--;
 }
@@ -107,9 +118,9 @@ void termProcess() {
 
 // SYS3
 void passeren(int *semAdd) {
-    if(*semAdd > 0) {
-        *semAdd -= 1;
-    } else {
+    *semAdd--;
+
+    if (*semAdd < 0) {
         currentProcess->p_s = *EXCSTATE;
         currentProcess->p_time += elapsedTime();
         insertBlocked(semAdd, currentProcess);
@@ -119,14 +130,17 @@ void passeren(int *semAdd) {
 
 // SYS4
 pcb_t* verhogen(int *semAdd) {
+    *semAdd++;
+
     pcb_t *unblockedProcess = NULL;
-    if(headBlocked(semAdd) != NULL) {
+    if(*semAdd < 0) {
         // Process to be waked up
+        // If there are no longer any processes in the queue
+        // (because they were terminated), removeBlocked will
+        // return NULL
         unblockedProcess = removeBlocked(&semAdd);
     }
-    else{
-        *semAdd += 1;
-    }
+    
     return unblockedProcess;
 }
 

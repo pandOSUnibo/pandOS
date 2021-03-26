@@ -36,4 +36,8 @@ void addokbuf(char *strp);
 void printHex(unsigned int n);
 void printDec(unsigned int n);
 
+void deadBreak();
+void exBreak();
+void intBreak();
+
 #endif

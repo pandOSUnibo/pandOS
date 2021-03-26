@@ -46,7 +46,6 @@ int main(void) {
     // Load Interval Timer
     LDIT(100000UL);
 
-    addokbuf("Initializing...\n");
 
     // Instantiate first process
     // allocPcb sets all the process fields to their default value

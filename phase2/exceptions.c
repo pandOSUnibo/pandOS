@@ -45,8 +45,13 @@ void* memcpy(void *dest, const void *src, size_t len) {
     return dest;
 }
 
+// TODO resume deve distinguere i casi in cui c'è un processo a cui ritornare il controllo
+// e quelli in cui non c'è alcun processo corrente (WAIT() dello scheduler)
 void resume() {
-    LDST(EXCSTATE);
+    if(currentProcess == NULL)
+        schedule();
+    else
+        LDST(EXCSTATE);
 }
 
 HIDDEN void TLBExceptionHandler() {
@@ -69,6 +74,7 @@ void createProcess(state_t *statep, support_t *supportp) {
     pcb_t *newProc = allocPcb();
     unsigned int retValue = -1;
     if (newProc != NULL){
+        processCount++;
         newProc->p_supportStruct = supportp;
         newProc->p_s = *statep;
         insertChild(currentProcess, newProc);
@@ -131,6 +137,7 @@ void passeren(int *semAdd) {
         currentProcess->p_s = *EXCSTATE;
         currentProcess->p_time += elapsedTime();
         insertBlocked(semAdd, currentProcess);
+        currentProcess = NULL; // TODO da tenere?
         schedule();
     }
 }
@@ -163,11 +170,9 @@ pcb_t* verhogen(int *semAdd) {
  * @param waitForTermRead Terminal read or write.
  */
 void ioWait(int intlNo, int dNum, bool waitForTermRead) {
-    addokbuf("ioWait handling.\n");
     // Save the process state
     currentProcess->p_s = *EXCSTATE;
     softBlockCount++;
-
     // Select the correct semaphore
     switch (intlNo) {
         case DISKINT:
@@ -198,6 +203,7 @@ void getTime(cpu_t *resultAddress) {
 
 // SYS7
 void clockWait() {
+    softBlockCount++;
     passeren(&semIntTimer);
 }
 
@@ -213,10 +219,7 @@ void syscallHandler(unsigned int KUp) {
     unsigned int arg2 = EXCSTATE->reg_a2;
     unsigned int arg3 = EXCSTATE->reg_a3;
     memaddr resultAddress = EXCSTATE->reg_v0;
-
-    addokbuf("Syscall ");
-    printDec(sysId);
-    addokbuf("\n");
+    pcb_t *unblockedProc;
 
     if (sysId <= 8) {
         // KUp is 0 in kernel mode and 0x00000008
@@ -233,7 +236,11 @@ void syscallHandler(unsigned int KUp) {
                     passeren((int *) arg1);
                     break;
                 case VERHOGEN:
-                    verhogen((int *) arg1);
+                    unblockedProc = verhogen((int *) arg1);
+                    // TODO la verhogen non dovrebbe automaticamente inserire il
+                    // processo sbloccato nella readyQueue?
+                    if(unblockedProc != NULL)
+                        insertProcQ(&readyQueue, unblockedProc);
                     break;
                 case IOWAIT:
                     ioWait(arg1, arg2, arg3);
@@ -278,9 +285,6 @@ void exceptionHandler() {
     state_t *exceptionState = EXCSTATE;
 
     unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
-    addokbuf("Exception: ");
-    printHex(cause);
-    addokbuf("\n");
 
     // TODO: Controllare correttezza. Al massimo si può salvare
     // localmente lo state_t
@@ -314,7 +318,7 @@ void exceptionHandler() {
             syscallHandler(exceptionState->status & USERPON);
             break;
         default:
-            addokbuf("PANIC: exceptions.c | Unrecognized exception.");
+            exBreak();
             PANIC();
             break;
     }

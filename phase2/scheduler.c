@@ -10,7 +10,6 @@
 cpu_t sliceStart;
 
 void schedule() {
-    addokbuf("Entering scheduler.\n");
     if(emptyProcQ(readyQueue)) {
 
         // Job's done
@@ -19,7 +18,6 @@ void schedule() {
         }
         // Wait state
         if(processCount > 0 && softBlockCount > 0) {
-            addokbuf("Waiting for interrupts...\n");
             // Enable interrupts and disable PLT
             unsigned int prevStatus = getSTATUS();
             // TODO: Devo overridare la maschera?
@@ -37,7 +35,7 @@ void schedule() {
 
         // Deadlock state
         if(processCount > 0 && softBlockCount == 0) {
-            addokbuf("PANIC: scheduler.c | DEADLOCK\n");
+            deadBreak();
             PANIC();
         }
     }
@@ -52,6 +50,5 @@ void schedule() {
     STCK(sliceStart);
 
     // Load active processor state
-    addokbuf("Leaving scheduler.\n");
     LDST(&(currentProcess->p_s));
 }

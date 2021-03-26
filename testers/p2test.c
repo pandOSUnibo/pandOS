@@ -108,6 +108,7 @@ void	p5sys(),p8root(),child1(),child2(),p8leaf();
 
 extern void p5gen ();
 extern void p5mm ();
+void testBreak(){}
 
 
 /* a procedure to print on terminal 0 */
@@ -127,6 +128,7 @@ void print(char *msg) {
 	}
 	SYSCALL(VERHOGEN, (int)&term_mut, 0, 0);				/* V(term_mut) */
 }
+
 
 
 /* TLB-Refill Handler */

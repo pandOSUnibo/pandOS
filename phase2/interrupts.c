@@ -34,7 +34,7 @@ int mapToInt(unsigned int map) {
         case 0x00000080:
             return 7;
         default:
-            addokbuf("PANIC: interrupts.c | Error in mapToInt.");
+            intBreak();
             PANIC();
             return -1;
     }
@@ -59,14 +59,6 @@ void nonTimerInterrupt(int deviceType) {
     int instanceID = mapToInt(instanceMap);
     unsigned int statusCode;
     
-    addokbuf("Device type:");
-    printDec(deviceType);
-    addokbuf("\n");
-
-    addokbuf("Non timer interrupt: ");
-    printDec(instanceID);
-    addokbuf("\n");
-    
     if (deviceType == 4)
     {
         // Terminal device 
@@ -89,7 +81,7 @@ void nonTimerInterrupt(int deviceType) {
         DEVREGAREA->devreg[deviceType][instanceID].dtp.command = ACK;
         unblockLoad(deviceType, instanceID, statusCode);
     }
-    resume();
+        resume();
 }
 
 void pltInterrupt() {
@@ -103,7 +95,6 @@ void pltInterrupt() {
 
 void intervalTimerInterrupt() {
     LDIT(100000UL);
-
     // Free all processes
     pcb_t *blockedProcess = NULL;
     while ((blockedProcess = removeBlocked(&semIntTimer)) != NULL) {
@@ -111,6 +102,7 @@ void intervalTimerInterrupt() {
     }
 
     // Reset the semaphore value
+    softBlockCount += semIntTimer;// TODO aggiornare softBlockCount
     semIntTimer = 0;
 
     // There are two main cases:
@@ -125,9 +117,7 @@ void intervalTimerInterrupt() {
 
 void interruptsHandler(state_t *exceptionState) {
     unsigned int ip = (exceptionState->cause & GETIP);
-    addokbuf("Interrupt: ");
-    printHex(ip);
-    addokbuf("\n");
+
     // Keep the least significant bit
     ip &= -ip;
     

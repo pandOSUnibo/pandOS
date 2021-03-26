@@ -115,3 +115,7 @@ void printDec(unsigned int n) {
     prntnum(n, 10, ' ', buf);
     addokbuf(buf);
 }
+
+void deadBreak(){}
+void exBreak(){}
+void intBreak(){}

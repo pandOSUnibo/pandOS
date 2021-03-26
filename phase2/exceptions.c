@@ -7,6 +7,9 @@
 #include "interrupts.h"
 #include <umps3/umps/libumps.h>
 
+#include "debug.h"
+
+void termProcess();
 
 // TODO: Considerare se mettere le syscalls in un file separato
 
@@ -88,16 +91,20 @@ void termProcessRecursive(pcb_t *p) {
     // A process is blocked on a device if the semaphore is
     // semIntTimer or an element of semDevices
     bool blockedOnDevice = 
-    (p->p_semAdd >= semDevices &&
-    p->p_semAdd < semDevices + sizeof(semaphore) * DEVICE_TYPES * DEVICE_INSTANCES) 
-    || p->p_semAdd == semIntTimer;
+    (p->p_semAdd >= (int *)semDevices &&
+    p->p_semAdd < (int *)semDevices + sizeof(semaphore) * DEVICE_TYPES * DEVICE_INSTANCES) 
+    || p->p_semAdd == &semIntTimer;
 
     // If the process is blocked on a user semaphore, remove it
     outBlocked(p);
 
     // For device processes, 
-    if (!blockedOnDevice) {
-        *(p->p_semAdd)++;
+    if (blockedOnDevice) {
+        softBlockCount--;
+
+    }
+    else {
+        (*(p->p_semAdd))++;
     }
 
     freePcb(p);
@@ -118,7 +125,7 @@ void termProcess() {
 
 // SYS3
 void passeren(int *semAdd) {
-    *semAdd--;
+    (*semAdd)--;
 
     if (*semAdd < 0) {
         currentProcess->p_s = *EXCSTATE;
@@ -130,15 +137,15 @@ void passeren(int *semAdd) {
 
 // SYS4
 pcb_t* verhogen(int *semAdd) {
-    *semAdd++;
+    (*semAdd)++;
 
     pcb_t *unblockedProcess = NULL;
-    if(*semAdd < 0) {
+    if(*semAdd <= 0) {
         // Process to be waked up
         // If there are no longer any processes in the queue
         // (because they were terminated), removeBlocked will
         // return NULL
-        unblockedProcess = removeBlocked(&semAdd);
+        unblockedProcess = removeBlocked(semAdd);
     }
     
     return unblockedProcess;
@@ -156,6 +163,7 @@ pcb_t* verhogen(int *semAdd) {
  * @param waitForTermRead Terminal read or write.
  */
 void ioWait(int intlNo, int dNum, bool waitForTermRead) {
+    addokbuf("ioWait handling.\n");
     // Save the process state
     currentProcess->p_s = *EXCSTATE;
     softBlockCount++;
@@ -205,6 +213,10 @@ void syscallHandler(unsigned int KUp) {
     unsigned int arg2 = EXCSTATE->reg_a2;
     unsigned int arg3 = EXCSTATE->reg_a3;
     memaddr resultAddress = EXCSTATE->reg_v0;
+
+    addokbuf("Syscall ");
+    printDec(sysId);
+    addokbuf("\n");
 
     if (sysId <= 8) {
         // KUp is 0 in kernel mode and 0x00000008
@@ -266,6 +278,9 @@ void exceptionHandler() {
     state_t *exceptionState = EXCSTATE;
 
     unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
+    addokbuf("Exception: ");
+    printHex(cause);
+    addokbuf("\n");
 
     // TODO: Controllare correttezza. Al massimo si può salvare
     // localmente lo state_t
@@ -299,6 +314,7 @@ void exceptionHandler() {
             syscallHandler(exceptionState->status & USERPON);
             break;
         default:
+            addokbuf("PANIC: exceptions.c | Unrecognized exception.");
             PANIC();
             break;
     }

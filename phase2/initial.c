@@ -6,6 +6,8 @@
 #include "scheduler.h"
 #include <umps3/umps/libumps.h>
 
+#include "debug.h"
+
 unsigned int processCount;
 unsigned int softBlockCount;
 pcb_t *readyQueue;
@@ -15,11 +17,6 @@ pcb_t *currentProcess;
 
 semaphore semDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 semaphore semIntTimer;
-
-void isDevice(semaphore* semAdd) {
-    // TODO: Finire
-    (&semIntTimer + 8)[2];
-}
 
 // TODO: Mettere quanto più possibile HIDDEN
 
@@ -49,11 +46,14 @@ int main(void) {
     // Load Interval Timer
     LDIT(100000UL);
 
+    addokbuf("Initializing...\n");
+
     // Instantiate first process
     // allocPcb sets all the process fields to their default value
     pcb_t *process = allocPcb();
     processCount++;
-    process->p_s.status = IEPON | TEBITON;
+    // TODO: Check IMON
+    process->p_s.status = IEPON | TEBITON | IMON;
     RAMTOP(process->p_s.reg_sp);
     
     process->p_s.pc_epc = (memaddr) &test;

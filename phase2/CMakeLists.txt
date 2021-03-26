@@ -1,5 +1,5 @@
 if(PHASE STREQUAL "phase2")
-    add_executable(phase2 initial.c exceptions.c interrupts.c scheduler.c )
+    add_executable(phase2 initial.c exceptions.c interrupts.c scheduler.c debug.c)
     target_link_options(phase2 PUBLIC -r )
 
     target_include_directories(phase2 PUBLIC ../h)

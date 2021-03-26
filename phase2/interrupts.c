@@ -4,9 +4,12 @@
 #include "pandos_const.h"
 #include "pcb.h"
 #include "scheduler.h"
+#include <umps3/umps/libumps.h>
+
+#include "debug.h"
 
 #define GETIP   0x0000FE00
-#define IPSHIFT 2
+#define IPSHIFT 8
 #define TRANS_CHAR 5
 #define RECVD_CHAR TRANS_CHAR
 
@@ -31,8 +34,9 @@ int mapToInt(unsigned int map) {
         case 0x00000080:
             return 7;
         default:
+            addokbuf("PANIC: interrupts.c | Error in mapToInt.");
             PANIC();
-            return;
+            return -1;
     }
 }
 
@@ -43,6 +47,7 @@ void unblockLoad(int deviceType, int instanceID, unsigned int statusCode) {
     if(unblockedProc != NULL) {
         unblockedProc->p_s.reg_v0 = statusCode;
         insertProcQ(&readyQueue, unblockedProc);
+        softBlockCount--;
     }
 }
 
@@ -54,18 +59,25 @@ void nonTimerInterrupt(int deviceType) {
     int instanceID = mapToInt(instanceMap);
     unsigned int statusCode;
     
+    addokbuf("Device type:");
+    printDec(deviceType);
+    addokbuf("\n");
+
+    addokbuf("Non timer interrupt: ");
+    printDec(instanceID);
+    addokbuf("\n");
+    
     if (deviceType == 4)
     {
         // Terminal device 
         termreg_t *termStatus = &(DEVREGAREA->devreg[deviceType][instanceID].term);
-        
-        if (termStatus->recv_status == RECVD_CHAR){
+
+        if ((termStatus->recv_status & 0x000000FF) == RECVD_CHAR) {
             statusCode = termStatus->recv_status;
             DEVREGAREA->devreg[deviceType][instanceID].term.recv_command = ACK;
             unblockLoad(deviceType, instanceID, statusCode);
         }
-        if (termStatus->transm_status == TRANS_CHAR)
-        {
+        if ((termStatus->transm_status & 0x000000FF) == TRANS_CHAR) {
             statusCode = termStatus->transm_status;
             DEVREGAREA->devreg[deviceType][instanceID].term.transm_command = ACK;
             unblockLoad(deviceType + 1, instanceID, statusCode);
@@ -84,7 +96,7 @@ void pltInterrupt() {
     // Load a very large time
     setTIMER(MUSEC_TO_TICKS(100000UL));
     currentProcess->p_s = *EXCSTATE;
-    insertProcQ(readyQueue, currentProcess);
+    insertProcQ(&readyQueue, currentProcess);
     currentProcess = NULL; // TODO: Togliere?
     schedule();
 }
@@ -95,7 +107,7 @@ void intervalTimerInterrupt() {
     // Free all processes
     pcb_t *blockedProcess = NULL;
     while ((blockedProcess = removeBlocked(&semIntTimer)) != NULL) {
-        insertProcQ(readyQueue, blockedProcess);
+        insertProcQ(&readyQueue, blockedProcess);
     }
 
     // Reset the semaphore value
@@ -113,6 +125,9 @@ void intervalTimerInterrupt() {
 
 void interruptsHandler(state_t *exceptionState) {
     unsigned int ip = (exceptionState->cause & GETIP);
+    addokbuf("Interrupt: ");
+    printHex(ip);
+    addokbuf("\n");
     // Keep the least significant bit
     ip &= -ip;
     

@@ -119,3 +119,4 @@ void printDec(unsigned int n) {
 void deadBreak(){}
 void exBreak(){}
 void intBreak(){}
+void termBreak(){}

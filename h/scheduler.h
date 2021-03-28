@@ -16,6 +16,12 @@
 
 extern cpu_t sliceStart;
 
+/**
+ * @brief Selects a process and executes it.
+ * 
+ * @remark The selected process will be also stored
+ * in currentProcess (defined in initial.h).
+ */
 void schedule();
 
 #endif

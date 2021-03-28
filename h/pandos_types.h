@@ -60,7 +60,14 @@ typedef struct pcb_t {
 
 } pcb_t, *pcb_PTR;
 
+/**
+ * @brief Represents a size.
+ */
 typedef unsigned int size_t;
+
+/**
+ * @brief Represents a boolean value.
+ */
 typedef int bool;
 
 #endif

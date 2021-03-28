@@ -9,24 +9,37 @@
 
 #include "debug.h"
 
-void termProcess();
+HIDDEN void termProcess();
 
 // TODO: Considerare se mettere le syscalls in un file separato
 
-// Returns the real time since the beginning of the
-// time slice
+/**
+ * @brief Calculates the real time elapsed since the beginning of the time
+ * slice, which was set at the last time that this process was selected by the scheduler
+ * 
+ * @return The real time elapsed since the beginning of the time slice 
+ */
 cpu_t elapsedTime() {
     cpu_t clockTime;
     STCK(clockTime);
     return clockTime - sliceStart;
 }
 
-void passUpOrDie(int index) {
+/**
+ * @brief Pass Up or Die, for handling exceptions numbered 9 and above,
+ * Program Trap and TLB exceptions. Which action between the 2 is taken 
+ * depends on whether the current process was proveded a NULL value for
+ * its Support Structure pointer when it was created or not.
+ * 
+ * @param index Either 0 (PGFAULTEXCEPT) or 1 (GENERALEXCEPT), indicating
+ * that the exception to be handled is respectively a TLB exception or any
+ * of the other cases listed above.
+ */
+HIDDEN void passUpOrDie(int index) {
     support_t *supportStructure = currentProcess->p_supportStruct;
     if (supportStructure == NULL) {
-        // Die: Kill the process using a termProcess-like call
+        // Die: Kill the process using a SYS2-like call
         termProcess();
-
     }
     else {
         // Pass up the exception to the Support Level
@@ -36,6 +49,18 @@ void passUpOrDie(int index) {
     }
 }
 
+/**
+ * @brief Copies bytes from an address to
+ * another.
+ * 
+ * @param dest Destination address.
+ * @param src Source address.
+ * @param len Length of the bytes to be copied.
+ * @return void* A pointer to the destination
+ * address.
+ * @remark This function is also added by the compiler
+ * in order to support struct copying.
+ */
 void* memcpy(void *dest, const void *src, size_t len) {
     char *d = dest;
     const char *s = src;
@@ -47,6 +72,7 @@ void* memcpy(void *dest, const void *src, size_t len) {
 
 // TODO resume deve distinguere i casi in cui c'è un processo a cui ritornare il controllo
 // e quelli in cui non c'è alcun processo corrente (WAIT() dello scheduler)
+
 void resume() {
     if(currentProcess == NULL)
         schedule();
@@ -54,10 +80,18 @@ void resume() {
         LDST(EXCSTATE);
 }
 
+/**
+ * @brief Handles a TLB exception.
+ *  
+ */
 HIDDEN void TLBExceptionHandler() {
     passUpOrDie(PGFAULTEXCEPT);
 }
 
+/**
+ * @brief Handles a Program Trap.
+ * 
+ */
 void trapHandler() {
     passUpOrDie(GENERALEXCEPT);
 }
@@ -84,14 +118,20 @@ void createProcess(state_t *statep, support_t *supportp) {
     EXCSTATE->reg_v0 = retValue;
 }
 
-void termProcessRecursive(pcb_t *p) {
+/**
+ * @brief Recursively terminates a process and
+ * its children.
+ * 
+ * @param p Process to be terminated.
+ */
+HIDDEN void termProcessRecursive(pcb_t *p) {
     pcb_t *child;
     
     // Handle all children
     while ((child = removeChild(p)) != NULL) {
+        outProcQ(&readyQueue, child);
         termProcessRecursive(child);
     }
-
     // Handle the process itself
     
     // A process is blocked on a device if the semaphore is
@@ -105,11 +145,7 @@ void termProcessRecursive(pcb_t *p) {
     outBlocked(p);
 
     // For device processes, 
-    if (blockedOnDevice) {
-        softBlockCount--;
-
-    }
-    else {
+    if (!blockedOnDevice) {
         (*(p->p_semAdd))++;
     }
 
@@ -117,8 +153,13 @@ void termProcessRecursive(pcb_t *p) {
     processCount--;
 }
 
-// SYS2
-void termProcess() {
+/**    else {
+    }
+ * @brief SYS2: terminates the process currently in execution and all his progeny recursively.
+ * After that, the scheduler is called.
+ * 
+ */
+HIDDEN void termProcess() {
     outChild(currentProcess);
     termProcessRecursive(currentProcess);
     // currentProcess will be overwritten by the scheduler
@@ -129,7 +170,11 @@ void termProcess() {
     schedule();
 }
 
-// SYS3
+/**
+ * @brief SYS3 (P): performs a P operation on the semaphore provided.
+ * 
+ * @param semAdd Pointer to the semaphore to perform the P on.
+ */
 void passeren(int *semAdd) {
     (*semAdd)--;
 
@@ -137,12 +182,11 @@ void passeren(int *semAdd) {
         currentProcess->p_s = *EXCSTATE;
         currentProcess->p_time += elapsedTime();
         insertBlocked(semAdd, currentProcess);
-        currentProcess = NULL; // TODO da tenere?
+        currentProcess = NULL;
         schedule();
     }
 }
 
-// SYS4
 pcb_t* verhogen(int *semAdd) {
     (*semAdd)++;
 
@@ -153,6 +197,9 @@ pcb_t* verhogen(int *semAdd) {
         // (because they were terminated), removeBlocked will
         // return NULL
         unblockedProcess = removeBlocked(semAdd);
+        if(unblockedProcess != NULL){
+            insertProcQ(&readyQueue, unblockedProcess);
+        }
     }
     
     return unblockedProcess;
@@ -162,14 +209,14 @@ pcb_t* verhogen(int *semAdd) {
 // dovrà salvare in v0
 
 /**
- * @brief SYS5: Wait for an I/O operation. It performs a P operation on the semaphore
+ * @brief SYS5: waits for an I/O operation. It performs a P operation on the semaphore
  * of the selected (sub)device. The process state is saved and the scheduler is called.
  * 
- * @param intlNo Interrupt line number [3..7].
- * @param dNum  Device number [0..7].
+ * @param intlNo Interrupt line number in [3, 7].
+ * @param dNum  Device number in [0, 7].
  * @param waitForTermRead Terminal read or write.
  */
-void ioWait(int intlNo, int dNum, bool waitForTermRead) {
+HIDDEN void ioWait(int intlNo, int dNum, bool waitForTermRead) {
     // Save the process state
     currentProcess->p_s = *EXCSTATE;
     softBlockCount++;
@@ -194,32 +241,52 @@ void ioWait(int intlNo, int dNum, bool waitForTermRead) {
     }
 }
 
-// SYS6
-// Note: we return the real time (using TOD)
-void getTime(cpu_t *resultAddress) {
+/**
+ * @brief SYS6: stores the real time since the
+ * beginning of the process' execution in the
+ * provided address.
+ * 
+ * @param resultAddress Address where the real
+ * time will be stored.
+ */
+HIDDEN void getTime(cpu_t *resultAddress) {
     *resultAddress = currentProcess->p_time + elapsedTime();
 }
 
 
-// SYS7
-void clockWait() {
+/**
+ * @brief SYS7: blocks the process until the next
+ * Interval Timer tick.
+ */
+HIDDEN void clockWait() {
     softBlockCount++;
     passeren(&semIntTimer);
 }
 
-// SYS8
-void getSupportPtr(support_t *resultAddress) {
+/**
+ * @brief SYS8: stores the pointer to the process'
+ * support structure in the provided address.
+ * 
+ * @param resultAddress Address where the support structure
+ * will be stored.
+ */
+HIDDEN void getSupportPtr(support_t *resultAddress) {
     *resultAddress = *(currentProcess->p_supportStruct);
 }
 
-void syscallHandler(unsigned int KUp) {
+/**
+ * @brief Handles syscalls.
+ * 
+ * @param KUp Value of the KUp bit in the CAUSE
+ * register.
+ */
+HIDDEN void syscallHandler(unsigned int KUp) {
     unsigned int sysId = EXCSTATE->reg_a0;
     // Get arguments for syscalls
     unsigned int arg1 = EXCSTATE->reg_a1;
     unsigned int arg2 = EXCSTATE->reg_a2;
     unsigned int arg3 = EXCSTATE->reg_a3;
-    memaddr resultAddress = EXCSTATE->reg_v0;
-    pcb_t *unblockedProc;
+    memaddr resultAddress = (memaddr) &(EXCSTATE->reg_v0);
 
     if (sysId <= 8) {
         // KUp is 0 in kernel mode and 0x00000008
@@ -236,11 +303,7 @@ void syscallHandler(unsigned int KUp) {
                     passeren((int *) arg1);
                     break;
                 case VERHOGEN:
-                    unblockedProc = verhogen((int *) arg1);
-                    // TODO la verhogen non dovrebbe automaticamente inserire il
-                    // processo sbloccato nella readyQueue?
-                    if(unblockedProc != NULL)
-                        insertProcQ(&readyQueue, unblockedProc);
+                    verhogen((int *) arg1);
                     break;
                 case IOWAIT:
                     ioWait(arg1, arg2, arg3);
@@ -318,7 +381,6 @@ void exceptionHandler() {
             syscallHandler(exceptionState->status & USERPON);
             break;
         default:
-            exBreak();
             PANIC();
             break;
     }

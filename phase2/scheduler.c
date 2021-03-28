@@ -21,7 +21,7 @@ void schedule() {
             // Enable interrupts and disable PLT
             unsigned int prevStatus = getSTATUS();
             // TODO: Devo overridare la maschera?
-            // TODO: Togliere?
+            // TODO: Togliere? 
             setTIMER(MUSEC_TO_TICKS(500000UL)); //TODO: Temporaneo e ho tolto la disattivazione
             // TODO: Controllare IMON
             setSTATUS((prevStatus) | IECON | IMON);

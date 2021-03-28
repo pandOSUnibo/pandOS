@@ -15,7 +15,16 @@
 
 #define DEVREGAREA ((devregarea_t *)RAMBASEADDR)
 
-int mapToInt(unsigned int map) {
+/**
+ * @brief Maps a bitmask-like unsigned int to the
+ * index of its corresponding "on" bit.
+ * 
+ * @param map Bitmask with exactly one bit (between the
+ * 1st and the 8th) "on".
+ * @return int The index of the "on" bit.
+ * @remark If map is not a valid value, it calls PANIC().
+ */
+HIDDEN int mapToInt(unsigned int map) {
     switch (map) {
         case 0x00000001:
             return 0;
@@ -40,19 +49,33 @@ int mapToInt(unsigned int map) {
     }
 }
 
-void unblockLoad(int deviceType, int instanceID, unsigned int statusCode) {
+/**
+ * @brief Frees a process blocked on a non-timer device.
+ * 
+ * @param deviceType Integer in [0, DEVICE_TYPES) representing
+ * the non-timer device. 
+ * @param instanceID Index of the device instance.
+ * @param statusCode Status code of the non-interrupt device.
+ * @remark DEVICE_TYPES is defined in initial.h.
+ */
+HIDDEN void unblockLoad(int deviceType, int instanceID, unsigned int statusCode) {
     pcb_t *unblockedProc;
     unblockedProc = verhogen(&(semDevices[deviceType][instanceID]));
     
     if(unblockedProc != NULL) {
         unblockedProc->p_s.reg_v0 = statusCode;
-        insertProcQ(&readyQueue, unblockedProc);
         softBlockCount--;
     }
 }
 
-void nonTimerInterrupt(int deviceType) {
-    // deviceType is in [0, 4]
+/**
+ * @brief Handles non-timer interrupts.
+ * 
+ * @param deviceType Integer in [0, DEVICE_TYPES) representing
+ * the non-timer device.
+ * @remark DEVICE_TYPES is defined in initial.h.
+ */
+HIDDEN void nonTimerInterrupt(int deviceType) {
     unsigned int instanceMap = DEVREGAREA->interrupt_dev[deviceType];
     // Get the device instance with highest priority
     instanceMap &= -instanceMap;
@@ -84,23 +107,32 @@ void nonTimerInterrupt(int deviceType) {
         resume();
 }
 
-void pltInterrupt() {
+/**
+ * @brief Handles a PLT interrupt.
+ * 
+ */
+HIDDEN void pltInterrupt() {
     // Load a very large time
     setTIMER(MUSEC_TO_TICKS(100000UL));
     currentProcess->p_s = *EXCSTATE;
+    currentProcess->p_time += elapsedTime();
     insertProcQ(&readyQueue, currentProcess);
     currentProcess = NULL; // TODO: Togliere?
     schedule();
 }
 
-void intervalTimerInterrupt() {
+/**
+ * @brief Handles an Interval Timer interrupt.
+ * 
+ */
+HIDDEN void intervalTimerInterrupt() {
     LDIT(100000UL);
     // Free all processes
     pcb_t *blockedProcess = NULL;
     while ((blockedProcess = removeBlocked(&semIntTimer)) != NULL) {
         insertProcQ(&readyQueue, blockedProcess);
     }
-
+    
     // Reset the semaphore value
     softBlockCount += semIntTimer;// TODO aggiornare softBlockCount
     semIntTimer = 0;

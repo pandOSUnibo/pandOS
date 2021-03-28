@@ -14,6 +14,12 @@
 
 #include "initial.h"
 
+/**
+ * @brief Handles interrupts.
+ * 
+ * @param exceptionState Pointer to the process
+ * state at the time of the interrupt.
+ */
 void interruptsHandler(state_t *exceptionState);
 
 #endif

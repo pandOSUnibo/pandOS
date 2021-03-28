@@ -20,6 +20,9 @@
 
 typedef unsigned int devreg;
 
+extern int verPlt;
+extern int reachedBetween;
+
 /* This function returns the terminal transmitter status value given its address */ 
 devreg termstat(memaddr * stataddr);
 
@@ -32,6 +35,7 @@ unsigned int termprint(char * str, unsigned int term);
 *	causes the string to be written out to terminal0 */
 void addokbuf(char *strp);
 
+void prntnum(unsigned long n, int base, char sign, char *outbuf);
 
 void printHex(unsigned int n);
 void printDec(unsigned int n);
@@ -39,5 +43,6 @@ void printDec(unsigned int n);
 void deadBreak();
 void exBreak();
 void intBreak();
+void termBreak();
 
 #endif

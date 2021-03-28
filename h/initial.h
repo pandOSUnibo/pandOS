@@ -20,17 +20,48 @@
 #define EXCSP_START KERNELSTACK
 
 typedef int semaphore;
-#define DEVICE_TYPES   6
-#define DEVICE_INSTANCES 8
+#define DEVICE_TYPES     6  ///< Disk, Flash, Network, Printer and 2 sub-device types for Terminals
+#define DEVICE_INSTANCES 8  ///< 8 devices for every device type
 
+/**
+ * @brief Number of active processes.
+ */
 extern unsigned int processCount;
+
+/**
+ * @brief Number of processes blocked on
+ * device semaphores.
+ */
 extern unsigned int softBlockCount;
+
+/**
+ * @brief Queue of processes that are ready
+ * to be executed.
+ */
 extern pcb_t *readyQueue;
+
+/**
+ * @brief Current active process.
+ */
 extern pcb_t *currentProcess;
 
+/**
+ * @brief Semaphores for non-timer devices.
+ * 
+ */
 extern semaphore semDevices[DEVICE_TYPES][DEVICE_INSTANCES];
+
+/**
+ * @brief Semaphore for the Interval Timer.
+ * 
+ */
 extern semaphore semIntTimer;
 
+/**
+ * @brief The entry point for pandOS.
+ * 
+ * @return int The exit code.
+ */
 int main(void);
 
 #endif

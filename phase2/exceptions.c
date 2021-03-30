@@ -138,14 +138,14 @@ HIDDEN void termProcessRecursive(pcb_t *p) {
     // semIntTimer or an element of semDevices
     bool blockedOnDevice = 
     (p->p_semAdd >= (int *)semDevices &&
-    p->p_semAdd < (int *)semDevices + sizeof(semaphore) * DEVICE_TYPES * DEVICE_INSTANCES) 
-    || p->p_semAdd == &semIntTimer;
+    p->p_semAdd < ((int *)semDevices + (sizeof(semaphore) * DEVICE_TYPES * DEVICE_INSTANCES))) 
+    || (p->p_semAdd == (int*) &semIntTimer);
 
     // If the process is blocked on a user semaphore, remove it
-    outBlocked(p);
+    pcb_t *removedPcb = outBlocked(p);
 
     // For device processes, 
-    if (!blockedOnDevice) {
+    if (!blockedOnDevice && removedPcb != NULL) {
         (*(p->p_semAdd))++;
     }
 

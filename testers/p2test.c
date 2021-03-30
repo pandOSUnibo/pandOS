@@ -274,7 +274,7 @@ void test() {
 	/* now for a more rigorous check of process termination */
 	for (p8inc=0; p8inc<4; p8inc++) {
 		creation = SYSCALL(CREATETHREAD, (int)&p8rootstate, (int) NULL, 0);
-
+		testBreak();
 		if (creation == CREATENOGOOD) {
 			print("error in process termination\n");
 			PANIC();

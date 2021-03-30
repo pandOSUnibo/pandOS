@@ -270,8 +270,8 @@ HIDDEN void clockWait() {
  * @param resultAddress Address where the support structure
  * will be stored.
  */
-HIDDEN void getSupportPtr(support_t *resultAddress) {
-    *resultAddress = *(currentProcess->p_supportStruct);
+HIDDEN void getSupportPtr(support_t **resultAddress) {
+    *resultAddress = currentProcess->p_supportStruct;
 }
 
 /**
@@ -315,7 +315,7 @@ HIDDEN void syscallHandler(unsigned int KUp) {
                     clockWait();
                     break;
                 case GETSUPPORTPTR:
-                    getSupportPtr((support_t *)resultAddress);
+                    getSupportPtr((support_t **)resultAddress);
                     break;
                 default:
                     // Invalid SYSCALL ID: Kill

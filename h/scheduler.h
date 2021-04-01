@@ -12,9 +12,7 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-#define MUSEC_TO_TICKS(T)         (T) * (*((cpu_t *) TIMESCALEADDR))
-
-extern cpu_t sliceStart;
+extern cpu_t sliceStart;   
 
 /**
  * @brief Selects a process and executes it.

@@ -171,8 +171,16 @@
 #define POOLSIZE (UPROCMAX * 2)
 // End of Mikeyg constants 
 
+#define INTIMER  100000UL       ///< Interval timer value
+#define MAXPLT   0xFFFFFFFFUL   ///< Max value of the PLT timer 
+#define EXCSTATE ((state_t *) BIOSDATAPAGE) ///< The saved processor state at the time of the exception
+#define MUSEC_TO_TICKS(T) (T) * (*((cpu_t *)TIMESCALEADDR))   ///< Conversion from microseconds to clock ticks
+
+#define DEVICE_TYPES     6  ///< Disk, Flash, Network, Printer and 2 sub-device types for Terminals
+#define DEVICE_INSTANCES 8  ///< 8 devices for every device type
 
 #define MAXPOINT ((void *)0xFFFFFFFF) ///< Maximum address of memory location
 #define MINPOINT ((void *)0x00000000) ///< Minimum address of memory location
 
 #endif
+

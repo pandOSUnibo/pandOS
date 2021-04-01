@@ -20,8 +20,6 @@
 #define EXCSP_START KERNELSTACK
 
 typedef int semaphore;
-#define DEVICE_TYPES     6  ///< Disk, Flash, Network, Printer and 2 sub-device types for Terminals
-#define DEVICE_INSTANCES 8  ///< 8 devices for every device type
 
 /**
  * @brief Number of active processes.

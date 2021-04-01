@@ -379,3 +379,17 @@ type, without using underscores:
         int n;
         struct node *next;
     } node;
+
+Preprocessor Directives
+-----------------------
+
+Place preprocessor directives in the following order:
+- Include guard
+- #include directives
+- #define directives, grouped by purpose
+- Everything else
+
+Include directives should be grouped in the following order:
+- External libraries
+- System costants files
+- In-house files

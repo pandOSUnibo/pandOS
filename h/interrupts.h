@@ -12,7 +12,7 @@
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 
-#include "initial.h"
+#include <umps3/umps/types.h>
 
 /**
  * @brief Handles interrupts.

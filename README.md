@@ -10,7 +10,7 @@ Clone the repository, then run:
 
 ```bash
 cd pandOS
-sudo ./build.sh
+sudo ./build.sh [phase1|phase2]
 ```
 
 ## How to Use

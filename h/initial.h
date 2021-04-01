@@ -19,22 +19,47 @@
 #define TLBSP_START KERNELSTACK
 #define EXCSP_START KERNELSTACK
 
-#define SEMAPHORE int
-#define DEVICE_ISTANCES 8
+typedef int semaphore;
 
+/**
+ * @brief Number of active processes.
+ */
 extern unsigned int processCount;
+
+/**
+ * @brief Number of processes blocked on
+ * device semaphores.
+ */
 extern unsigned int softBlockCount;
+
+/**
+ * @brief Queue of processes that are ready
+ * to be executed.
+ */
 extern pcb_t *readyQueue;
+
+/**
+ * @brief Current active process.
+ */
 extern pcb_t *currentProcess;
 
-extern SEMAPHORE semDisk[DEVICE_ISTANCES];
-extern SEMAPHORE semFlash[DEVICE_ISTANCES];
-extern SEMAPHORE semNetwork[DEVICE_ISTANCES];
-extern SEMAPHORE semPrinter[DEVICE_ISTANCES];
-extern SEMAPHORE semTerminalTrans[DEVICE_ISTANCES];
-extern SEMAPHORE semTerminalRecv[DEVICE_ISTANCES];
-extern SEMAPHORE semIntTimer;
+/**
+ * @brief Semaphores for non-timer devices.
+ * 
+ */
+extern semaphore semDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
+/**
+ * @brief Semaphore for the Interval Timer.
+ * 
+ */
+extern semaphore semIntTimer;
+
+/**
+ * @brief The entry point for pandOS.
+ * 
+ * @return int The exit code.
+ */
 int main(void);
 
 #endif

@@ -1,65 +1,61 @@
+#include <umps3/umps/libumps.h>
 
 #include "asl.h"
 #include "pcb.h"
-#include "initial.h"
+
 #include "exceptions.h"
+#include "initial.h"
 #include "scheduler.h"
-#include <umps3/umps/libumps.h>
 
 unsigned int processCount;
 unsigned int softBlockCount;
 pcb_t *readyQueue;
 pcb_t *currentProcess;
 
-SEMAPHORE semDisk[DEVICE_ISTANCES];
-SEMAPHORE semFlash[DEVICE_ISTANCES];
-SEMAPHORE semNetwork[DEVICE_ISTANCES];
-SEMAPHORE semPrinter[DEVICE_ISTANCES];
-SEMAPHORE semTerminalTrans[DEVICE_ISTANCES];
-SEMAPHORE semTerminalRecv[DEVICE_ISTANCES];
-SEMAPHORE semIntTimer;
+semaphore semDevices[DEVICE_TYPES][DEVICE_INSTANCES];
+semaphore semIntTimer;
 
-// TODO: Mettere quanto più possibile HIDDEN
-
-// TODO: Trovare dove va messo
 extern void test();
 extern void uTLB_RefillHandler();
 
 int main(void) {
-    // Initialize the Pass Up Vector
-    passupvector_t *passUpVector = (passupvector_t*) PASSVEC_LOCATION;
-    passUpVector->tlb_refill_handler = (memaddr) &uTLB_RefillHandler;
-    passUpVector->tlb_refill_stackPtr = (memaddr) TLBSP_START;
-    passUpVector->exception_handler = (memaddr) exceptionHandler;
-    passUpVector->tlb_refill_stackPtr = (memaddr) EXCSP_START;
+	// Initialize the Pass Up Vector
+	passupvector_t *passUpVector = (passupvector_t *) PASSVEC_LOCATION;
 
-    // Initialize the Level 2 structures
-    initPcbs();
-    initASL();
+	passUpVector->tlb_refill_handler = (memaddr) &uTLB_RefillHandler;
+	passUpVector->tlb_refill_stackPtr = (memaddr) TLBSP_START;
+	passUpVector->exception_handler = (memaddr) exceptionHandler;
+	passUpVector->exception_stackPtr = (memaddr) EXCSP_START;
 
-    // Initialize global variables
-    readyQueue = mkEmptyProcQ();
-    currentProcess = NULL;
+	// Initialize the Level 2 structures
+	initPcbs();
+	initASL();
 
-    // processCount, softBlockCount and device semaphores are
-    // automatically initialized at compile time
+	// Initialize global variables
+	readyQueue = mkEmptyProcQ();
+	currentProcess = NULL;
 
-    // Load Interval Timer
-    LDIT(100000UL);
+	// processCount, softBlockCount and device semaphores are
+	// automatically initialized at compile time
 
-    // Instantiate first process
-    // allocPcb sets all the process fields to their default value
-    pcb_t *process = allocPcb();
-    processCount++;
-    process->p_s.status = IEPON | TEBITON;
-    RAMTOP(process->p_s.reg_sp);
-    
-    process->p_s.pc_epc = (memaddr) &test;
-    process->p_s.reg_t9 = (memaddr) &test;
+	// Load Interval Timer
+	LDIT(INTIMER);
 
-    insertProcQ(&readyQueue, process);
 
-    // Call the scheduler
-    schedule();
-    return 1;
+	// Instantiate first process
+	// allocPcb sets all the process fields to their default value
+	pcb_t *process = allocPcb();
+
+	processCount++;
+	process->p_s.status = IEPON | TEBITON | IMON;
+	RAMTOP(process->p_s.reg_sp);
+
+	process->p_s.pc_epc = (memaddr) &test;
+	process->p_s.reg_t9 = (memaddr) &test;
+
+	insertProcQ(&readyQueue, process);
+
+	// Call the scheduler
+	schedule();
+	return 1;
 }

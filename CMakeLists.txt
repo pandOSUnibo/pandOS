@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_TOOLCHAIN_FILE ./toolchain.cmake)
-SET (CMAKE_C_COMPILER_WORKS 1)
 project(kernel VERSION 0.2.0 LANGUAGES C)
 
 # Option for generating the docs
@@ -15,13 +14,16 @@ if(COMPILE_DOC)
         python3 make_source.py ../h ./source/ &&
         make latexpdf)
 endif()
+
 #Checks what phase to compile
 if(PHASE STREQUAL "phase1")
     set(TARGET_PATH ./testers/)
     set(TARGET tester)
-else()
+elseif(PHASE STREQUAL "phase2")
     set(TARGET_PATH ./phase2/)
     set(TARGET phase2)
+else()
+    message(FATAL_ERROR "Phase must be equal to 'phase1' or 'phase2'." )    
 endif()
 
 #Generate kernel

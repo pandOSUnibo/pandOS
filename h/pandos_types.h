@@ -8,6 +8,7 @@
 #define PANDOS_TYPES_H_INCLUDED
 
 #include <umps3/umps/types.h>
+
 #include "pandos_const.h"
 
 typedef signed int cpu_t;
@@ -60,6 +61,14 @@ typedef struct pcb_t {
 
 } pcb_t, *pcb_PTR;
 
+/**
+ * @brief Represents a size.
+ */
 typedef unsigned int size_t;
+
+/**
+ * @brief Represents a boolean value.
+ */
+typedef int bool;
 
 #endif

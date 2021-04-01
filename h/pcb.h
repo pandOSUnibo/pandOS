@@ -10,6 +10,7 @@
 #ifndef PCB_H
 #define PCB_H
 
+#include "pandos_const.h"
 #include "pandos_types.h"
 
 /**

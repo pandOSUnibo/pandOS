@@ -1,3 +1,9 @@
+/**
+ * @file pandos_const.h
+ * @brief This header file contains constant declarations.
+ * 
+ */
+
 #ifndef PANDOS_CONST_H_INCLUDED
 #define PANDOS_CONST_H_INCLUDED
 

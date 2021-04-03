@@ -71,4 +71,9 @@ typedef unsigned int size_t;
  */
 typedef int bool;
 
+/**
+ * @brief Represents a semaphore.
+ */
+typedef int semaphore;
+
 #endif

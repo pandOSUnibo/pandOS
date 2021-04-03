@@ -1,7 +1,7 @@
 /**
  * @file exceptions.h
  * @author Luca Donno, Antonio Lopez, Samuele Marro, Edoardo Merli
- * @brief Exceptions handler
+ * @brief Exception handler functions.
  * @version 0.2.0
  * @date 2021-03-14
  * 

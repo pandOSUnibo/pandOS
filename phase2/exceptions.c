@@ -127,10 +127,10 @@ HIDDEN void syscallHandler(unsigned int KUp) {
 				termProcess();
 				break;
 			case PASSEREN:
-				passeren(arg1);
+				passeren((semaphore *) arg1);
 				break;
 			case VERHOGEN:
-				verhogen(arg1);
+				verhogen((semaphore *) arg1);
 				break;
 			case IOWAIT:
 				ioWait(arg1, arg2, arg3);

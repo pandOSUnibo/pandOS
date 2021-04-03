@@ -1,6 +1,6 @@
 /**
  * @file pandos_const.h
- * @brief This header file contains utility constants and macro definitions.
+ * @brief This header file contains constant declarations.
  * 
  */
 
@@ -8,6 +8,31 @@
 #define PANDOS_CONST_H_INCLUDED
 
 #include <umps3/umps/const.h>
+
+// Hardware & software constants
+#define PAGESIZE 4096 ///< page size in bytes
+#define WORDLEN  4    ///< word size in bytes
+
+
+// timer, timescale, TOD-LO and other bus regs
+#define RAMBASEADDR   0x10000000
+#define RAMBASESIZE   0x10000004
+#define TODLOADDR     0x1000001C
+#define INTERVALTMR   0x10000020
+#define TIMESCALEADDR 0x10000024
+
+// Memory related constants
+#define KSEG0        0x00000000
+#define KSEG1        0x20000000
+#define KSEG2        0x40000000
+#define KUSEG        0x80000000
+#define RAMSTART     0x20000000
+#define BIOSDATAPAGE 0x0FFFF000
+#define PASSUPVECTOR 0x0FFFF900
+
+// Exceptions related constants
+#define PGFAULTEXCEPT 0
+#define GENERALEXCEPT 1
 
 // Mikeyg Added constants
 
@@ -51,6 +76,7 @@
 #define TIMERINTERRUPT 0x00000400
 #define DISKINTERRUPT  0x00000800
 #define FLASHINTERRUPT 0x00001000
+#define NETWINTERRUPT  0x00002000
 #define PRINTINTERRUPT 0x00004000
 #define TERMINTERRUPT  0x00008000
 #define IOINTERRUPTS   0
@@ -151,8 +177,16 @@
 #define POOLSIZE (UPROCMAX * 2)
 // End of Mikeyg constants 
 
+#define INTIMER  100000UL       ///< Interval timer value
+#define MAXPLT   0xFFFFFFFFUL   ///< Max value of the PLT timer 
+#define EXCSTATE ((state_t *) BIOSDATAPAGE) ///< The saved processor state at the time of the exception
+#define MUSEC_TO_TICKS(T) (T) * (*((cpu_t *)TIMESCALEADDR))   ///< Conversion from microseconds to clock ticks
+
+#define DEVICE_TYPES     6  ///< Disk, Flash, Network, Printer and 2 sub-device types for Terminals
+#define DEVICE_INSTANCES 8  ///< 8 devices for every device type
 
 #define MAXPOINT ((void *)0xFFFFFFFF) ///< Maximum address of memory location
 #define MINPOINT ((void *)0x00000000) ///< Minimum address of memory location
 
 #endif
+

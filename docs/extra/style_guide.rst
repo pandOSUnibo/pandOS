@@ -64,7 +64,7 @@ program (or that particular file) does, as in:
       * @file hitchkiker.c
       * @author Douglas Adams
       * @brief Finds the answer to everything. 
-      * @version 0.1.0
+      * @version 0.2.0
       * @date 2021-02-11
       * 
       */
@@ -225,6 +225,7 @@ Indentation
 -----------
 
 Indent using four spaces:
+
 .. code:: c
 
     // Print command-line arguments one per line
@@ -378,3 +379,19 @@ type, without using underscores:
         int n;
         struct node *next;
     } node;
+
+Preprocessor Directives
+-----------------------
+
+Place preprocessor directives in the following order:
+
+-  Include guard
+-  #include directives
+-  #define directives, grouped by purpose
+-  Everything else
+
+Include directives should be grouped in the following order:
+
+-  External libraries
+-  System costants files
+-  In-house files

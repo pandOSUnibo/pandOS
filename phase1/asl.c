@@ -1,5 +1,5 @@
-#include "pcb.h"
 #include "asl.h"
+#include "pcb.h"
 
 #define MAXSEMD (MAXPROC + 2)
 /**

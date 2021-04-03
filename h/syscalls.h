@@ -36,7 +36,7 @@ void termProcess();
  * 
  * @param semAdd Pointer to the semaphore to perform the P on.
  */
-void passeren();
+void passeren(semaphore *semAdd);
 
 /**
  * @brief SYS4 (V): performs a V operation on the semaphore provided.
@@ -45,7 +45,7 @@ void passeren();
  * @return Pointer to the PCB of the process that was eventually unblocked
  * by the V operation, NULL if there was no process to be unblocked.
  */
-pcb_t* verhogen(int *semAdd);
+pcb_t* verhogen(semaphore *semAdd);
 
 /**
  * @brief SYS5: waits for an I/O operation. It performs a P operation on the semaphore

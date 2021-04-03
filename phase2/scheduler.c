@@ -5,7 +5,7 @@
 #include "initial.h"
 #include "scheduler.h"
 
-cpu_t sliceStart;
+volatile cpu_t sliceStart;
 
 /**
  * @brief Preemptive round-robin scheduler with time slice value of 5ms.
@@ -13,11 +13,11 @@ cpu_t sliceStart;
  */
 void schedule() {
 	if (emptyProcQ(readyQueue)) {
-
 		// Job's done
 		if (processCount == 0) {
 			HALT();
 		}
+
 		// Wait state
 		if (processCount > 0 && softBlockCount > 0) {
 			// Enable interrupts and disable PLT

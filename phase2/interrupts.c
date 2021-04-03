@@ -15,6 +15,7 @@
 #define IPSHIFT 8
 #define TRANS_CHAR 5
 #define RECVD_CHAR TRANS_CHAR
+#define TERMSTATUSMASK 0x000000FF
 
 #define DEVREGAREA ((devregarea_t *)RAMBASEADDR)
 
@@ -29,25 +30,25 @@
  */
 HIDDEN int mapToInt(unsigned int map) {
 	switch (map) {
-	case 0x00000001:
-		return 0;
-	case 0x00000002:
-		return 1;
-	case 0x00000004:
-		return 2;
-	case 0x00000008:
-		return 3;
-	case 0x00000010:
-		return 4;
-	case 0x00000020:
-		return 5;
-	case 0x00000040:
-		return 6;
-	case 0x00000080:
-		return 7;
-	default:
-		PANIC();
-		return -1;
+		case 0x00000001:
+			return 0;
+		case 0x00000002:
+			return 1;
+		case 0x00000004:
+			return 2;
+		case 0x00000008:
+			return 3;
+		case 0x00000010:
+			return 4;
+		case 0x00000020:
+			return 5;
+		case 0x00000040:
+			return 6;
+		case 0x00000080:
+			return 7;
+		default:
+			PANIC();
+			return -1;
 	}
 }
 
@@ -85,18 +86,18 @@ HIDDEN void nonTimerInterrupt(int deviceType) {
 	// Get the device instance with highest priority
 	instanceMap &= -instanceMap;
 	int instanceID = mapToInt(instanceMap);
-	unsigned int statusCode;
+	volatile unsigned int statusCode;
 
 	if (deviceType == 4) {
 		// Terminal device 
 		termreg_t *termStatus = &(DEVREGAREA->devreg[deviceType][instanceID].term);
 
-		if ((termStatus->recv_status & 0x000000FF) == RECVD_CHAR) {
+		if ((termStatus->recv_status & TERMSTATUSMASK) == RECVD_CHAR) {
 			statusCode = termStatus->recv_status;
 			DEVREGAREA->devreg[deviceType][instanceID].term.recv_command = ACK;
 			unblockLoad(deviceType, instanceID, statusCode);
 		}
-		if ((termStatus->transm_status & 0x000000FF) == TRANS_CHAR) {
+		if ((termStatus->transm_status & TERMSTATUSMASK) == TRANS_CHAR) {
 			statusCode = termStatus->transm_status;
 			DEVREGAREA->devreg[deviceType][instanceID].term.transm_command = ACK;
 			unblockLoad(deviceType + 1, instanceID, statusCode);

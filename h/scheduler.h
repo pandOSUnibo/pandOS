@@ -12,7 +12,7 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-extern cpu_t sliceStart;   
+extern volatile cpu_t sliceStart;   
 
 /**
  * @brief Selects a process and executes it.

@@ -24,7 +24,7 @@
 
 
 cpu_t elapsedTime() {
-	cpu_t clockTime;
+	volatile cpu_t clockTime;
 
 	STCK(clockTime);
 	return clockTime - sliceStart;
@@ -107,12 +107,12 @@ HIDDEN void trapHandler() {
  * register.
  */
 HIDDEN void syscallHandler(unsigned int KUp) {
-	unsigned int sysId = EXCSTATE->reg_a0;
+	volatile unsigned int sysId = EXCSTATE->reg_a0;
 
 	// Get arguments for syscalls
-	unsigned int arg1 = EXCSTATE->reg_a1;
-	unsigned int arg2 = EXCSTATE->reg_a2;
-	unsigned int arg3 = EXCSTATE->reg_a3;
+	volatile unsigned int arg1 = EXCSTATE->reg_a1;
+	volatile unsigned int arg2 = EXCSTATE->reg_a2;
+	volatile unsigned int arg3 = EXCSTATE->reg_a3;
 	memaddr resultAddress = (memaddr) &(EXCSTATE->reg_v0);
 
 	if (sysId <= 8) {
@@ -127,10 +127,10 @@ HIDDEN void syscallHandler(unsigned int KUp) {
 				termProcess();
 				break;
 			case PASSEREN:
-				passeren((int *) arg1);
+				passeren(arg1);
 				break;
 			case VERHOGEN:
-				verhogen((int *) arg1);
+				verhogen(arg1);
 				break;
 			case IOWAIT:
 				ioWait(arg1, arg2, arg3);
@@ -173,7 +173,7 @@ HIDDEN void syscallHandler(unsigned int KUp) {
 void exceptionHandler() {
 	state_t *exceptionState = EXCSTATE;
 
-	unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
+	volatile unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
 	// Increment the PC by one word so that when control returns to the
 	// process, it does not perform a syscall again
 	exceptionState->pc_epc += WORDLEN;

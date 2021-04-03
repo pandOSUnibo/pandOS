@@ -23,7 +23,7 @@ void createProcess(state_t * statep, support_t * supportp) {
 		newProc->p_s = *statep;
 		insertChild(currentProcess, newProc);
 		insertProcQ(&readyQueue, newProc);
-		retValue = 1;
+		retValue = 0;
 	}
 	EXCSTATE->reg_v0 = retValue;
 }

@@ -385,13 +385,13 @@ Preprocessor Directives
 
 Place preprocessor directives in the following order:
 
-- Include guard
-- #include directives
-- #define directives, grouped by purpose
-- Everything else
+-  Include guard
+-  #include directives
+-  #define directives, grouped by purpose
+-  Everything else
 
 Include directives should be grouped in the following order:
 
-- External libraries
-- System costants files
-- In-house files
+-  External libraries
+-  System costants files
+-  In-house files

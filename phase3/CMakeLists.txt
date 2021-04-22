@@ -1,5 +1,5 @@
 if(PHASE STREQUAL "phase3")
-    add_executable(phase3 init_proc.c sys_support.c vm_support.c)
+    add_executable(phase3 init_proc.c sys_support.c vm_support.c support.c)
     target_link_options(phase3 PUBLIC -r )
 
     target_include_directories(phase3 PUBLIC ../h)

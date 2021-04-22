@@ -20,4 +20,6 @@
 extern pteEntry_t swapTable[FRAMENUMBER];
 extern semaphore semSwapPool;
 
+void uTLB_PageFaultHandler();
+
 #endif

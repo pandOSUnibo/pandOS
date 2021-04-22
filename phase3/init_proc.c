@@ -1,58 +1,22 @@
 #include "init_proc.h"
+#include "support.h"
 #include "sys_support.h"
+#include "syscalls.h"
 #include "vm_support.h"
+
+#include <umps3/umps/libumps.h>
+
+#define VPNBASE 0x80000000
+#define UPROCSTACKPG 0xBFFFF000
 
 // TODO - Usare NOPROC oppure farlo custom
 #define UNOCUPPIED (0x3F<<ASIDSHIFT)
-#define UPROCNUMBER UPROCMAX
 
-// Semaphore used for wait the child process to end 
+// Semaphore used to wait the child process termination
 semaphore masterSemaphore;
 
 //TODO - inserire in un file separato la gestione delle support structure
-HIDDEN support_t support_table[UPROCNUMBER];
-// Pointers to the free Support Structure. A dummy node is present.
-HIDDEN support_t *freeSupport[UPROCNUMBER+1];
-// Pointer to the first block that can store a new free one.
-HIDDEN support_t **stackSup;
 
-// TODO - sistemare la gestione della support free list
-
-/**
- * @brief Insert in the free list the structure passed.
- * 
- * @param support Pointer to the new free support structure.
- */
-void deallocSupport(support_t *support){
-    *stackSup = support;
-    stackSup = (stackSup + sizeof(support_t*));
-}
-
-/**
- * @brief Allocates a new support structure.
- * 
- * @return The allocated support structure. Returns NULL if memory is not available.
- */
-support_t* allocSupport() {
-    support_t *supp = NULL;
-    if (stackSup != freeSupport){
-        stackSup = (stackSup - sizeof(support_t*));
-        supp = stackSup;
-    }
-    return supp;
-}
-
-/**
- * @brief Initialize the support structures
- * 
- */
-void initSupport() {
-    stackSup = freeSupport;
-    int i ;
-    for (i = 0; i < UPROCNUMBER; i++){
-        deallocSupport(&support_table[i]);
-    }
-}
 
 void initialize() {
     // Semaphore initialization
@@ -75,13 +39,44 @@ void initialize() {
 
 int test(void) {
     initialize();
+
+    // Initialize processor state equal for all U-procs
     state_t p;
     p.pc_epc = UPROCSTARTADDR;
     p.reg_t9 = UPROCSTARTADDR;
     p.reg_sp = USERSTACKTOP;
     p.status = IEPON | IMON | TEBITON | USERPON;
-    for (int i = 1; i <= UPROCNUMBER; i++){
-        p.entry_hi = (i<<ASIDSHIFT);
+
+    support_t *sup;
+    sup = allocSupport();
+    for (int id = 1; id <= UPROCNUMBER; id++) {
+        p.entry_hi = (id << ASIDSHIFT);
+
+        // Initialize Support Structure for the i-th U-proc
+        sup->sup_asid = id;
+        sup->sup_exceptContext[PGFAULTEXCEPT].c_pc = uTLB_PageFaultHandler; // TODO: metti uTLB_Handler
+        sup->sup_exceptContext[GENERALEXCEPT].c_pc = 0; // TODO: metti GeneralExceptionHandler
+        sup->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPON | IMON | TEBITON;
+        sup->sup_exceptContext[GENERALEXCEPT].c_status = IEPON | IMON | TEBITON; // GeneralExceptionHandler
+        sup->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr = &(sup.sup_stackGen[499]);
+        sup->sup_exceptContext[GENERALEXCEPT].c_stackPtr = &(sup.sup_stackGen[499]);
+
+        int row;
+        for(row = 0; row<USERPGTBLSIZE-1; row++) {
+            sup->sup_privatePgTbl[row].pte_entryHI = VPNBASE + (row<<VPNSHIFT);
+            sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON | GLOBALON;
+        }
+            
+        sup->sup_privatePgTbl[row].pte_entryHI = UPROCSTACKPG + (row<<VPNSHIFT);
+        sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON | GLOBALON;
+        // TODO: Call SYS1 on U-proc
+        SYSCALL(CREATEPROCESS, (int)&p, (int)sup, 0);
+
     }
-     
+
+    // TODO: è sempre UPROCNUMBER?
+    for (int i = 0; i < UPROCNUMBER; i++){
+        passeren(&masterSemaphore);
+    }
+    termProcess();
 }

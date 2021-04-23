@@ -15,7 +15,7 @@
 #include "pandos_const.h"
 #include "pandos_types.h"
 
-#define FRAMENUMBER  2 * UPROCMAX
+#define FRAMENUMBER  (2 * UPROCMAX)
 
 extern pteEntry_t swapTable[FRAMENUMBER];
 extern semaphore semSwapPool;

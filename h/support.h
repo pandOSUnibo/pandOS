@@ -29,12 +29,12 @@ void deallocSupport(support_t *support);
  * 
  * @return The allocated support structure. Returns NULL if memory is not available.
  */
-support_t* allocSupport()
+support_t* allocSupport();
 
 /**
  * @brief Initialize the support structures
  * 
  */
-void initSupport()
+void initSupport();
 
 #endif

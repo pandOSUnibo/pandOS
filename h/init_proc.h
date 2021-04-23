@@ -12,6 +12,9 @@
 #ifndef INITPROC_H
 #define INITPROC_H
 
+#define VPNBASE 0x80000000
+#define VPNTOP  0x8001E000
+
 extern int test(void);
 
 #endif

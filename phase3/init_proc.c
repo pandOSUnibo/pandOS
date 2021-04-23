@@ -4,14 +4,15 @@
 #include "syscalls.h"
 #include "vm_support.h"
 
+#include "pandos_const.h"
+
 #include <umps3/umps/libumps.h>
 
-#define VPNBASE 0x80000000
+
 #define UPROCSTACKPG 0xBFFFF000
 
 // TODO - Usare NOPROC oppure farlo custom
 #define UNOCUPPIED (0x3F<<ASIDSHIFT)
-
 // Semaphore used to wait the child process termination
 semaphore masterSemaphore;
 
@@ -58,8 +59,8 @@ int test(void) {
         sup->sup_exceptContext[GENERALEXCEPT].c_pc = 0; // TODO: metti GeneralExceptionHandler
         sup->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPON | IMON | TEBITON;
         sup->sup_exceptContext[GENERALEXCEPT].c_status = IEPON | IMON | TEBITON; // GeneralExceptionHandler
-        sup->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr = &(sup.sup_stackGen[499]);
-        sup->sup_exceptContext[GENERALEXCEPT].c_stackPtr = &(sup.sup_stackGen[499]);
+        sup->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr = &(sup->sup_stackGen[499]);
+        sup->sup_exceptContext[GENERALEXCEPT].c_stackPtr = &(sup->sup_stackGen[499]);
 
         int row;
         for(row = 0; row<USERPGTBLSIZE-1; row++) {

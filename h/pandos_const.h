@@ -95,7 +95,7 @@
 
 
 // EntryHI register constants
-#define GETPAGENO     0x3FFFF000
+#define VPNMASK     0x3FFFF000
 #define GETSHAREFLAG  0xC0000000
 #define VPNSHIFT      12
 #define ASIDSHIFT     6
@@ -104,6 +104,7 @@
 
 //Index register constants
 #define PRESENTFLAG 0x80000000
+#define CACHED      0
 
 
 // Device register constants 

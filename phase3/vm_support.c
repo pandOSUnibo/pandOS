@@ -5,17 +5,56 @@
 #include "vm_support.h"
 #include "sys_support.h"
 
+// TODO: Rimuovere define inutili
+
 #define POOLSTART (RAMSTART + (32 * PAGESIZE))
 #define POOLEND (POOLSTART + FRAMENUMBER * PAGESIZE)
-#define ASIDMASK 
+#define PFNMASK 0x3FFFF000
+#define PFNSHIFT 12
+#define ASIDMASK 0x00000F60
+#define GETASID(T) (T & ASIDMASK) >> ASIDSHIFT
+#define GETVPN(T) (T & VPNMASK) >> VPNSHIFT
+#define SETASID(TO, FROM) TO = (TO & ASIDMASK) | (FROM << ASIDSHIFT)
+#define SETVPN(TO, FROM) TO = (TO & VPNMASK) | (FROM << VPNSHIFT)
+#define SETPFN(TO, FROM) TO = (TO & PFNMASK) | (FROM << PFNSHIFT)
 
-pteEntry_t swapTable[FRAMENUMBER];
+// TODO: Usarlo anche per le fasi precedenti?
+#define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
+#define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON)
+
+swap_t swapTable[FRAMENUMBER];
 semaphore semSwapPool;
 
 
-//TODO: * a destra?
 pteEntry_t* findEntry(int pageNumber) {
     return &(currentProcess->p_supportStruct->sup_privatePgTbl[pageNumber]);
+}
+
+// TODO: Il puntatore alla pteEntry può essere nullo?
+int findReplacement() {
+    static int currentReplacementIndex = 0;
+
+    int i = 0;
+    while((swapTable[(currentReplacementIndex + i) % FRAMENUMBER].sw_pte->pte_entryHI & VALIDON) && i < FRAMENUMBER)
+        ;
+
+    i = (i == FRAMENUMBER) ? 1 : i;
+
+    return currentReplacementIndex = (currentReplacementIndex + i) % FRAMENUMBER;
+}
+
+// TODO: Qui deve prenderlo come puntatore o normale?
+void updateTLB(pteEntry_t *updatedEntry){
+
+    // Check if the updated TLB entry is cached in the TLB
+    setENTRYHI(updatedEntry->pte_entryHI);
+    TLBP();
+    
+    if ((getINDEX() & PRESENTFLAG) == CACHED) {
+        // Update the TLB
+        setENTRYLO(updatedEntry->pte_entryLO);
+        TLBWI();
+    }
 }
 
 void uTLB_PageFaultHandler() {
@@ -32,43 +71,70 @@ void uTLB_PageFaultHandler() {
     // Gain mutual exclusion over the Swap Pool table
     SYSCALL(PASSEREN, &semSwapPool, 0, 0);
 
-    // Determine the missing page number
-    int missingPageNumber = (currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi & GETPAGENO) >> VPNSHIFT;
+    // Determine the ASID and the missing page number
+    //int currentASID = GETASID(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
+    int currentASID = currentSupport->sup_asid;
+    int missingPageNumber = GETVPN(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
     
     // Pick a frame replacement by calling page replacement algorithm
     // TODO: è int?
-    int selectedFrame = ...;
+    int selectedFrame = findReplacement();
 
     // Determine if frame i is occupied
-    if (swapTable[selectedFrame].pte_entryHI & VALIDON) {
+    if (swapTable[selectedFrame].sw_pte->pte_entryHI & VALIDON) {
         // Occupied
 
-        // Get the current page number and ASID
-        int occupiedPageNumber = (swapTable[selectedFrame].pte_entryHI & GETPAGENO) >> VPNSHIFT;
-        int occupiedASID = (swapTable[selectedFrame].pte_entryHI & ASIDMASK) >> ASIDSHIFT;
+        // Get the occupied ASID and page number
+        int occupiedASID = swapTable[selectedFrame].sw_asid;
+        int occupiedPageNumber = swapTable[selectedFrame].sw_pageNo;
         
         // Disable interrupts
-        setSTATUS(getSTATUS() & (~IECON));
-        
-        // Mark the current entry as not valid
-        currentSupport->sup_privatePgTbl[occupiedPageNumber].pte_entryLO &= ~VALIDON;
+        DISABLEINTERRUPTS;
 
-        // TODO: Update the TLB
-        TLBP()
+        // Mark the occupied entry as not valid
+
+        pteEntry_t *occupiedPageTable = swapTable[selectedFrame].sw_pte;
+        // TODO: occupiedPageTable deve essere dereferenziato?
+        occupiedPageTable[occupiedPageNumber].pte_entryLO &= ~VALIDON;
+
+        // Update the TLB, if needed
+        updateTLB(occupiedPageTable);
+
+        // TODO: Update process x's backing store   
 
         // Re-enable interrupts
-        setSTATUS(getSTATUS() | IECON);
+        ENABLEINTERRUPTS;
     }
 
-    // 4
+    // TODO: Read the contents from the flash device
+
+    // Update the swap pool table by setting the new ASID and page number
+    swapTable[selectedFrame].sw_asid = currentASID;
+    swapTable[selectedFrame].sw_pageNo = missingPageNumber;
+
+    // TODO: Aggiornare anche il puntatore alla pteEntry
+
+    DISABLEINTERRUPTS;
+    
+    // Update the process' page table
+    currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON;
+    SETPFN(currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO, selectedFrame);
+
+    // Update the TLB
+    updateTLB(&(currentSupport->sup_privatePgTbl[missingPageNumber]));
+
+    ENABLEINTERRUPTS;
 
     SYSCALL(VERHOGEN, &semSwapPool, 0, 0);
+
+    // TODO: Controllare
+    resume();
 }
 
 void uTLB_RefillHandler() {
     // Trova il page number
     // TLBR
-    int pageNumber = (EXCSTATE->entry_hi & GETPAGENO) >> VPNSHIFT;
+    int pageNumber = (EXCSTATE->entry_hi & VPNMASK) >> VPNSHIFT;
 
     pteEntry_t *entry = findEntry(pageNumber);
 

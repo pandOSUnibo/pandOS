@@ -3,29 +3,83 @@
 
 #include "initial.h"
 
+#define PRINTSEM 3
+#define TERMRDSEM 4
+#define TERMWRSEM 5
+
 semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
 #define DEVADDRBASE(IntlineNo, DevNo) (memaddr)(0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10))
 #define DEVREG(IntlineNo, DevNo, Reg)  (DEVADDRBASE(IntlineNo, DevNo) +  (Reg * WORDLEN))
+// TODO - passare current support come parametro?
+#define GETDEVNUMBER(support) support->sup_asid-1
 
-// TODO - DEVREG che tipo è ??
-void writeToPrinter(char *virtAddr, int len) {
-    int devNumber = currentProcess->p_supportStruct->sup_asid-1;
-    // Check if the addres and the lenght are valid
+#define TERMSTATUSMASK 0x000000FF
+#define TERMTRANSHIFT 8
+
+
+void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
+    int devNumber = GETDEVNUMBER(currentSupport);
+    int retValue = 0;
+    // Check if the address and the length are valid
     if(virtAddr >= VPNBASE && ((virtAddr + len) <= VPNTOP) && len <= 128 && len >= 0) {
-        SYSCALL(PASSEREN, semMutexDevices[3][devNumber], 0);
+        SYSCALL(PASSEREN, semMutexDevices[PRINTSEM][devNumber], 0);
         for (int i = 0; i < len; i++) {
             if(*((int *)DEVREG(PRNTINT, devNumber, STATUS)) == READY) {
                 *((char *)DEVREG(PRNTINT, devNumber, DATA0)) = *(virtAddr);
                 virtAddr++;
+                retValue++;
                 SYSCALL(IOWAIT, PRNTINT, devNumber, 0);
             }
+            else{
+                // Return the negative of the device status
+                retValue = -(*((int *)DEVREG(PRNTINT, devNumber, STATUS)));
+                break;
+            }
         }
-        SYSCALL(VERHOGEN, semMutexDevices[3][devNumber]);  
+        currentSupport->sup_exceptState->reg_v0 = retValue;
+        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber]);  
     } 
     else {
         terminate();
     }
+}
+
+void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
+    int devNumber = GETDEVNUMBER(currentSupport);
+    int retValue = 0;
+    // Check if the addres and the lenght are valid
+    if(virtAddr >= VPNBASE && ((virtAddr + len) <= VPNTOP) && len <= 128 && len >= 0) {
+        SYSCALL(PASSEREN, semMutexDevices[TERMWRSEM][devNumber], 0);
+        for (int i = 0; i < len; i++) {
+            if((*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)) & TERMSTATUSMASK) == READY) {
+                *((char *)DEVREG(TERMINT, devNumber, TRANCOMMAND)) = (TRANSMITCHAR | (*(virtAddr)<<TERMTRANSHIFT));
+                virtAddr++;
+                retValue++;
+                SYSCALL(IOWAIT, TERMINT, devNumber, 0);
+            }
+            else{
+                // Return the negative of the device status
+                retValue = -(*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)));
+                break;
+            }
+        }
+        currentSupport->sup_exceptState->reg_v0 = retValue;
+        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber]);  
+    } 
+    else {
+        terminate();
+    }
+}
+
+void readTerminal(char *buffer){
+    int devNumber = currentProcess->p_supportStruct->sup_asid-1;
+    int retValue = 0;
+    if(buffer >= VPNBASE && (buffer <= VPNTOP)) {
+        SYSCALL(PASSEREN, semMutexDevices[TERMRDSEM][devNumber], 0);
+        // TODO - continue
+    }
+
 }
 
 void getTod() {
@@ -39,16 +93,21 @@ void terminate() {
 void generalExceptionHandler() {
     // Get syscall code
     volatile unsigned int sysId = EXCSTATE->reg_a0;
+    // Increment the PC by one word so that when control returns to the
+	// process, it does not perform a syscall again
+    // TODO - va incrementato anche t9?
+    support_t *currentSupport = SYSCALL(GETSUPPORTPTR, 0, 0, 0);
+    currentSupport->sup_exceptState->pc_epc += WORDLEN;
 
     if(sysId<=13){
-        syscallExceptionHandler(sysId);
+        syscallExceptionHandler(sysId, currentSupport);
     }
     else{
         trapExceptionHandler();
     }
 }
 
-void syscallExceptionHandler(int sysId) {
+void syscallExceptionHandler(int sysId, support_t *currentSupport) {
     // Get arguments for syscalls
 	volatile unsigned int arg1 = EXCSTATE->reg_a1;
 	volatile unsigned int arg2 = EXCSTATE->reg_a2;
@@ -61,9 +120,10 @@ void syscallExceptionHandler(int sysId) {
         getTod();
         break;
     case WRITEPRINTER:
-        writeToPrinter(arg1, arg2);
+        writeToPrinter(arg1, arg2, currentSupport);
         break;
     case WRITETERMINAL:
+        writeToTerminal(arg1, arg2, currentSupport);  
         break;
     case READTERMINAL:
         break;

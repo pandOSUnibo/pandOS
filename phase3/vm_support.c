@@ -5,32 +5,30 @@
 #include "vm_support.h"
 #include "sys_support.h"
 
-// TODO: Rimuovere define inutili
-
 #define POOLSTART (RAMSTART + (32 * PAGESIZE))
 #define POOLEND (POOLSTART + FRAMENUMBER * PAGESIZE)
 #define PFNMASK 0x3FFFF000
 #define PFNSHIFT 12
-#define ASIDMASK 0x00000F60
-#define GETASID(T) (T & ASIDMASK) >> ASIDSHIFT
 #define GETVPN(T) (T & VPNMASK) >> VPNSHIFT
-#define SETASID(TO, FROM) TO = (TO & ASIDMASK) | (FROM << ASIDSHIFT)
-#define SETVPN(TO, FROM) TO = (TO & VPNMASK) | (FROM << VPNSHIFT)
 #define SETPFN(TO, FROM) TO = (TO & PFNMASK) | (FROM << PFNSHIFT)
 
 // TODO: Usarlo anche per le fasi precedenti?
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
 #define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON)
 
+#define FLASHADDRSHIFT 8
+
 swap_t swapTable[FRAMENUMBER];
 semaphore semSwapPool;
 
+typedef unsigned int flashaddr;
+
+// TODO: Fare un typedef per il tipo register (=unsigned int)?
 
 pteEntry_t* findEntry(int pageNumber) {
     return &(currentProcess->p_supportStruct->sup_privatePgTbl[pageNumber]);
 }
 
-// TODO: Il puntatore alla pteEntry può essere nullo?
 int findReplacement() {
     static int currentReplacementIndex = 0;
 
@@ -43,7 +41,6 @@ int findReplacement() {
     return currentReplacementIndex = (currentReplacementIndex + i) % FRAMENUMBER;
 }
 
-// TODO: Qui deve prenderlo come puntatore o normale?
 void updateTLB(pteEntry_t *updatedEntry){
 
     // Check if the updated TLB entry is cached in the TLB
@@ -57,11 +54,49 @@ void updateTLB(pteEntry_t *updatedEntry){
     }
 }
 
+void executeFlashAction(int deviceNumber, flashaddr flashLocation, unsigned int command) {
+    // Obtain the mutex on the device
+    // TODO: è l'indice corretto?
+    SYSCALL(PASSEREN, semMutexDevices[FLASHINT][deviceNumber], 0, 0);
+    *((flashaddr *)DEVREG(FLASHINT, deviceNumber, DATA0)) = flashLocation;
+
+    // TODO: pandOS dice esplicitamente di disattivare gli interrupts e riattivarli dopo
+    // la SYSCALL, ma che succede se si fa una syscall con gli interrupts disabilitati?
+    DISABLEINTERRUPTS;
+
+    *((unsigned int *)DEVREG(FLASHINT, deviceNumber, DATA0)) = command;
+    // Wait for the device
+    // The device ACK is handled by SYS5
+    unsigned int deviceStatus = SYSCALL(IOWAIT, FLASHINT, deviceNumber, FALSE);
+
+    ENABLEINTERRUPTS;
+
+    // Release the mutex
+    SYSCALL(VERHOGEN, semMutexDevices[FLASHINT][deviceNumber], 0, 0);
+
+    if (deviceStatus != READY) {
+        // TODO: Trap
+    }
+}
+
+void readFrameFromFlash(int deviceNumber, flashaddr flashLocation, memaddr frameLocation) {
+    unsigned int command = FLASHREAD | (flashLocation << FLASHADDRSHIFT);
+    executeFlashAction(deviceNumber, flashLocation, command);
+}
+
+void writeFrameToFlash(int deviceNumber, flashaddr flashLocation, memaddr frameLocation) {
+    unsigned int command = FLASHWRITE | (flashLocation << FLASHADDRSHIFT);
+    executeFlashAction(deviceNumber, flashLocation, command);
+}
+
 void uTLB_PageFaultHandler() {
     // Get Current Process's Support Structure
     support_t *currentSupport = SYSCALL(GETSUPPORTPTR, 0, 0, 0);
 
     // TODO: dobbiamo controllare che currentSupport non sia NULL oppure no?
+    // Secondo me no, la support structure viene creata quando si inizializza il processo,
+    // anche se la sezione 4.8 parla di potenziali problemi dovuti a supportStructure NULL (anche se
+    // fa riferimento a un altro contesto) --Sam
 
     // If it's a TLB-Modification exception, treat it as a program trap
     if((currentSupport->sup_exceptState[PGFAULTEXCEPT].cause & GETEXECCODE) >> CAUSESHIFT == 1){
@@ -72,12 +107,10 @@ void uTLB_PageFaultHandler() {
     SYSCALL(PASSEREN, &semSwapPool, 0, 0);
 
     // Determine the ASID and the missing page number
-    //int currentASID = GETASID(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
     int currentASID = currentSupport->sup_asid;
     int missingPageNumber = GETVPN(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
     
     // Pick a frame replacement by calling page replacement algorithm
-    // TODO: è int?
     int selectedFrame = findReplacement();
 
     // Determine if frame i is occupied
@@ -94,7 +127,6 @@ void uTLB_PageFaultHandler() {
         // Mark the occupied entry as not valid
 
         pteEntry_t *occupiedPageTable = swapTable[selectedFrame].sw_pte;
-        // TODO: occupiedPageTable deve essere dereferenziato?
         occupiedPageTable[occupiedPageNumber].pte_entryLO &= ~VALIDON;
 
         // Update the TLB, if needed
@@ -112,7 +144,8 @@ void uTLB_PageFaultHandler() {
     swapTable[selectedFrame].sw_asid = currentASID;
     swapTable[selectedFrame].sw_pageNo = missingPageNumber;
 
-    // TODO: Aggiornare anche il puntatore alla pteEntry
+    // TODO: pandOS non dice che bisogna aggiornare anche sw_pte, ma altrimenti rimarrebbe outdated
+    swapTable[selectedFrame].sw_pte = &(currentSupport->sup_privatePgTbl[missingPageNumber]);
 
     DISABLEINTERRUPTS;
     

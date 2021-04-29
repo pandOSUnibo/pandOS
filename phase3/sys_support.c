@@ -16,6 +16,7 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
 #define TERMSTATUSMASK 0x000000FF
 #define TERMTRANSHIFT 8
+#define TERMRECVSHIFT 8
 
 
 void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
@@ -23,7 +24,7 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
     int retValue = 0;
     // Check if the address and the length are valid
     if(virtAddr >= VPNBASE && ((virtAddr + len) <= VPNTOP) && len <= 128 && len >= 0) {
-        SYSCALL(PASSEREN, semMutexDevices[PRINTSEM][devNumber], 0);
+        SYSCALL(PASSEREN, semMutexDevices[PRINTSEM][devNumber], 0, 0);
         for (int i = 0; i < len; i++) {
             if(*((int *)DEVREG(PRNTINT, devNumber, STATUS)) == READY) {
                 *((char *)DEVREG(PRNTINT, devNumber, DATA0)) = *(virtAddr);
@@ -38,7 +39,7 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
             }
         }
         currentSupport->sup_exceptState->reg_v0 = retValue;
-        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber]);  
+        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);  
     } 
     else {
         terminate();
@@ -50,13 +51,14 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int retValue = 0;
     // Check if the addres and the lenght are valid
     if(virtAddr >= VPNBASE && ((virtAddr + len) <= VPNTOP) && len <= 128 && len >= 0) {
-        SYSCALL(PASSEREN, semMutexDevices[TERMWRSEM][devNumber], 0);
+        SYSCALL(PASSEREN, semMutexDevices[TERMWRSEM][devNumber], 0, 0);
         for (int i = 0; i < len; i++) {
-            if((*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)) & TERMSTATUSMASK) == READY) {
+        int ioStatus = 5;
+            if((*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)) & TERMSTATUSMASK) == READY && ioStatus == 5) {
                 *((char *)DEVREG(TERMINT, devNumber, TRANCOMMAND)) = (TRANSMITCHAR | (*(virtAddr)<<TERMTRANSHIFT));
                 virtAddr++;
                 retValue++;
-                SYSCALL(IOWAIT, TERMINT, devNumber, 0);
+                ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, 0);
             }
             else{
                 // Return the negative of the device status
@@ -65,21 +67,32 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
             }
         }
         currentSupport->sup_exceptState->reg_v0 = retValue;
-        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber]);  
+        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);  
     } 
     else {
         terminate();
     }
 }
 
-void readTerminal(char *buffer){
-    int devNumber = currentProcess->p_supportStruct->sup_asid-1;
+void readTerminal(char *buffer, support_t *currentSupport){
+    int devNumber = GETDEVNUMBER(currentSupport);
     int retValue = 0;
-    if(buffer >= VPNBASE && (buffer <= VPNTOP)) {
-        SYSCALL(PASSEREN, semMutexDevices[TERMRDSEM][devNumber], 0);
-        // TODO - continue
-    }
+    SYSCALL(PASSEREN, semMutexDevices[TERMRDSEM][devNumber], 0, 0);
+    int ioStatus;
+    const char eol = '\n';
+    char recvd;
+    while(buffer >= VPNBASE && (buffer <= VPNTOP) && (*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) == READY) {
+        ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, 0);
+        // check ioStatus if correct else break and return
+        recvd = (char)(DEVREG(TERMINT, devNumber, RECVSTATUS) >> TERMRECVSHIFT);
+        if(recvd == eol) {
 
+        }
+
+        buffer++; // ma si fa così o += WORDLEN?
+    }
+    // TODO - continue
+    }
 }
 
 void getTod() {
@@ -125,7 +138,7 @@ void syscallExceptionHandler(int sysId, support_t *currentSupport) {
     case WRITETERMINAL:
         writeToTerminal(arg1, arg2, currentSupport);  
         break;
-    case READTERMINAL:
+    case READTERMINAL(arg1, currentSupport):
         break;
     default:
         break;

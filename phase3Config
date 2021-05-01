@@ -8,35 +8,35 @@
     "devices": {
         "flash0": {
             "enabled": true,
-            "file": "testers/strConcat.umps"
+            "file": "testers/p3test/strConcat.umps"
         },
         "flash1": {
             "enabled": true,
-            "file": "testers/terminalTest2.umps"
+            "file": "testers/p3test/terminalTest2.umps"
         },
         "flash2": {
             "enabled": true,
-            "file": "testers/terminalTest3.umps"
+            "file": "testers/p3test/terminalTest3.umps"
         },
         "flash3": {
             "enabled": true,
-            "file": "testers/terminalTest4.umps"
+            "file": "testers/p3test/terminalTest4.umps"
         },
         "flash4": {
             "enabled": true,
-            "file": "testers/terminalTest5.umps"
+            "file": "testers/p3test/terminalTest5.umps"
         },
         "flash5": {
             "enabled": true,
-            "file": "testers/fibEight.umps"
+            "file": "testers/p3test/fibEight.umps"
         },
         "flash6": {
             "enabled": true,
-            "file": "testers/printerTest.umps"
+            "file": "testers/p3test/printerTest.umps"
         },
         "flash7": {
             "enabled": true,
-            "file": "testers/fibEleven.umps"
+            "file": "testers/p3test/fibEleven.umps"
         },
         "printer0": {
             "enabled": true,

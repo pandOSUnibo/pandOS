@@ -1,7 +1,8 @@
+#include <umps3/umps/libumps.h>
+
+#include "support.h"
 #include "sys_support.h"
 #include "init_proc.h"
-
-#include "initial.h"
 
 #define PRINTSEM 3
 #define TERMRDSEM 4
@@ -9,8 +10,6 @@
 
 semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
-#define DEVADDRBASE(IntlineNo, DevNo) (memaddr)(0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10))
-#define DEVREG(IntlineNo, DevNo, Reg)  (DEVADDRBASE(IntlineNo, DevNo) +  (Reg * WORDLEN))
 // TODO - passare current support come parametro?
 #define GETDEVNUMBER(support) support->sup_asid-1
 
@@ -18,6 +17,15 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 #define TERMTRANSHIFT 8
 #define TERMRECVSHIFT 8
 
+#define EOL '\n'
+
+// TODO - Linee troppo lunghe!!!
+
+void resumeSupport(support_t *currentSupport){
+    // TODO - va incrementato anche t9?
+    currentSupport->sup_exceptState->pc_epc += WORDLEN;
+    LDCXT(currentSupport->sup_exceptState->reg_sp, currentSupport->sup_exceptState->status, currentSupport->sup_exceptState->pc_epc);
+}
 
 void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
@@ -42,19 +50,19 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
         SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);  
     } 
     else {
-        terminate();
+        terminate(currentSupport);
     }
 }
 
 void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     int retValue = 0;
-    // Check if the addres and the lenght are valid
+    // Check if the address and the lenght are valid
     if(virtAddr >= VPNBASE && ((virtAddr + len) <= VPNTOP) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, semMutexDevices[TERMWRSEM][devNumber], 0, 0);
         for (int i = 0; i < len; i++) {
-        int ioStatus = 5;
-            if((*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)) & TERMSTATUSMASK) == READY && ioStatus == 5) {
+            int ioStatus = OKCHARTRANS;
+            if((*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)) & TERMSTATUSMASK) == READY && ioStatus == OKCHARTRANS) {
                 *((char *)DEVREG(TERMINT, devNumber, TRANCOMMAND)) = (TRANSMITCHAR | (*(virtAddr)<<TERMTRANSHIFT));
                 virtAddr++;
                 retValue++;
@@ -70,53 +78,85 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
         SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);  
     } 
     else {
-        terminate();
+        terminate(currentSupport);
     }
 }
 
+// TODO - è possibile migliorare le condizioni del while?
 void readTerminal(char *buffer, support_t *currentSupport){
     int devNumber = GETDEVNUMBER(currentSupport);
     int retValue = 0;
-    SYSCALL(PASSEREN, semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     int ioStatus;
-    const char eol = '\n';
-    char recvd;
-    while(buffer >= VPNBASE && (buffer <= VPNTOP) && (*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) == READY) {
+    char recvd = "";
+    SYSCALL(PASSEREN, semMutexDevices[TERMRDSEM][devNumber], 0, 0);
+    // Check if the buffer address is valid, if the device is ready and if the last character
+    // read is different from the end of line
+    while(buffer >= VPNBASE && (buffer <= VPNTOP) && (*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) == READY && recvd != EOL) {
         ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, 0);
-        // check ioStatus if correct else break and return
-        recvd = (char)(DEVREG(TERMINT, devNumber, RECVSTATUS) >> TERMRECVSHIFT);
-        if(recvd == eol) {
-
+        if(ioStatus == OKCHARTRANS){
+            // check ioStatus if correct else break and return
+            recvd = (char)(DEVREG(TERMINT, devNumber, RECVSTATUS) >> TERMRECVSHIFT);
+            if(recvd != EOL) {
+                *buffer = recvd;
+                buffer++;
+                retValue++;
+            }
         }
-
-        buffer++; // ma si fa così o += WORDLEN?
+        else{
+            retValue = -(*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)));
+            break;
+        }
     }
-    // TODO - continue
+    SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);
+    // Terminate the process if the buffer is an invalid adress
+    if((*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) != READY){
+        retValue = -(*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)));
+    }
+    if((buffer >= VPNBASE) && (buffer <= VPNTOP)){
+        currentSupport->sup_exceptState->reg_v0 = retValue;
+    }
+    else{
+        terminate(currentSupport);
     }
 }
 
-void getTod() {
-    STCK(EXCSTATE->reg_v0);
+
+void getTod(support_t *currentSupport) {
+    STCK(currentSupport->sup_exceptState->reg_v0);
 }
 
-void terminate() {
+void terminate(support_t *currentSupport) {
+    int devNumber = GETDEVNUMBER(currentSupport);
+    // Check if the process holds a mutex semaphore
+    if(semMutexDevices[PRINTSEM][devNumber] == 0){
+        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);
+    }
+    if(semMutexDevices[TERMWRSEM][devNumber] == 0){
+         SYSCALL(VERHOGEN, semMutexDevices[TERMWRSEM][devNumber], 0, 0);
+    }
+    if(semMutexDevices[TERMRDSEM][devNumber] == 0){
+         SYSCALL(VERHOGEN, semMutexDevices[TERMRDSEM][devNumber], 0, 0);
+    }
+
+    // TODO - check if holding mutual exclusion semaphore
+    deallocSupport(currentSupport);
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
 
 void generalExceptionHandler() {
     // Get syscall code
     volatile unsigned int sysId = EXCSTATE->reg_a0;
+    
     // Increment the PC by one word so that when control returns to the
 	// process, it does not perform a syscall again
-    // TODO - va incrementato anche t9?
     support_t *currentSupport = SYSCALL(GETSUPPORTPTR, 0, 0, 0);
-    currentSupport->sup_exceptState->pc_epc += WORDLEN;
 
-    if(sysId<=13){
+    if(sysId <= 13) {
         syscallExceptionHandler(sysId, currentSupport);
     }
     else{
-        trapExceptionHandler();
+        // Invalid syscall number, treat it as a trap
+        trapExceptionHandler(currentSupport);
     }
 }
 
@@ -127,10 +167,10 @@ void syscallExceptionHandler(int sysId, support_t *currentSupport) {
 	volatile unsigned int arg3 = EXCSTATE->reg_a3;
     switch (sysId){
     case TERMINATE:
-        terminate();
+        terminate(currentSupport);
         break;
     case GET_TOD:
-        getTod();
+        getTod(currentSupport);
         break;
     case WRITEPRINTER:
         writeToPrinter(arg1, arg2, currentSupport);
@@ -138,14 +178,16 @@ void syscallExceptionHandler(int sysId, support_t *currentSupport) {
     case WRITETERMINAL:
         writeToTerminal(arg1, arg2, currentSupport);  
         break;
-    case READTERMINAL(arg1, currentSupport):
+    case READTERMINAL:
+        readTerminal(arg1, currentSupport);
         break;
     default:
+        trapExceptionHandler(currentSupport);
         break;
     }
+    resumeSupport(currentSupport);
 }
 
-// TODO - capire cosa fare dei codici maggiori di 13
-void trapExceptionHandler() {
-    
+void trapExceptionHandler(support_t *currentSupport) {
+    terminate(currentSupport);
 }

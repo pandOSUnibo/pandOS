@@ -16,9 +16,6 @@
 // Semaphore used to wait the child process termination
 semaphore masterSemaphore;
 
-//TODO - inserire in un file separato la gestione delle support structure
-
-
 void initialize() {
     // Semaphore initialization
     for (int i = 0; i < DEVICE_TYPES; i++){
@@ -33,7 +30,7 @@ void initialize() {
 
     // Swap table initialization
     for (int i = 0; i < FRAMENUMBER; i++){
-        swapTable[i].pte_entryHI = UNOCUPPIED;
+        swapTable[i].sw_pte->pte_entryHI = UNOCUPPIED;
     }
     
 }

@@ -4,6 +4,6 @@ if(PHASE STREQUAL "phase3")
 
     target_include_directories(phase3 PUBLIC ../h)
 
-    target_link_libraries(phase2 phase1)
+    target_link_libraries(phase3 phase1)
     target_link_libraries(phase3 phase2)
 endif()

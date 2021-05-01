@@ -17,7 +17,7 @@
 
 #define FRAMENUMBER  (2 * UPROCMAX)
 
-extern pteEntry_t swapTable[FRAMENUMBER];
+extern swap_t swapTable[FRAMENUMBER];
 extern semaphore semSwapPool;
 
 void uTLB_PageFaultHandler();

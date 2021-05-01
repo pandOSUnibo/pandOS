@@ -55,6 +55,7 @@ dkms.conf
 umps3
 appunti.md
 .vscode
+*.umps
 
 build
 umps3Config

@@ -169,6 +169,9 @@ HIDDEN void syscallHandler(unsigned int KUp) {
 	}
 }
 
+void Bbreak(){
+	
+}
 
 void exceptionHandler() {
 	state_t *exceptionState = EXCSTATE;
@@ -204,6 +207,7 @@ void exceptionHandler() {
 		syscallHandler(exceptionState->status & USERPON);
 		break;
 	default:
+		Bbreak();
 		PANIC();
 		break;
 	}

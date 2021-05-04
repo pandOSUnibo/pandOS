@@ -15,6 +15,6 @@
 #define VPNBASE 0x80000000
 #define VPNTOP  0x8001E000
 
-extern int test(void);
+extern void test(void);
 
 #endif

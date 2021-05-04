@@ -26,6 +26,8 @@ semaphore semSwapPool;
 
 typedef unsigned int flashaddr;
 
+int AReplacementFound = 1000; //TODO: Rimuovere 
+
 // TODO: Guardare ottimizzazioni
 
 // TODO: Fare un typedef per il tipo register (=unsigned int)?
@@ -59,10 +61,15 @@ void updateTLB(pteEntry_t *updatedEntry){
     }
 }
 
+void A2break(){
+
+}
+
 void executeFlashAction(int deviceNumber, memaddr frameLocation, unsigned int command, support_t *currentSupport) {
     // Obtain the mutex on the device
     SYSCALL(PASSEREN, semMutexDevices[FLASHINT][deviceNumber], 0, 0);
     *((flashaddr *)DEVREG(FLASHINT, deviceNumber, DATA0)) = frameLocation;
+    A2break();
 
     // Disabling interrupt doesn't interfere with SYS5, since SYSCALLS aren't
     // interrupts
@@ -80,7 +87,7 @@ void executeFlashAction(int deviceNumber, memaddr frameLocation, unsigned int co
 
     if (deviceStatus != READY) {
         // Release the mutex on the swap pool semaphore
-        SYSCALL(VERHOGEN, &semSwapPool, 0, 0);
+        SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
         // Raise a trap
         trapExceptionHandler(currentSupport);
     }
@@ -98,7 +105,7 @@ void writeFrameToFlash(int deviceNumber, flashaddr flashLocation , memaddr frame
 
 void uTLB_PageFaultHandler() {
     // Get Current Process's Support Structure
-    support_t *currentSupport = SYSCALL(GETSUPPORTPTR, 0, 0, 0);
+    support_t *currentSupport = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
 
     // If it's a TLB-Modification exception, treat it as a program trap
     if((currentSupport->sup_exceptState[PGFAULTEXCEPT].cause & GETEXECCODE) >> CAUSESHIFT == 1){
@@ -106,7 +113,7 @@ void uTLB_PageFaultHandler() {
     }
 
     // Gain mutual exclusion over the Swap Pool table
-    SYSCALL(PASSEREN, &semSwapPool, 0, 0);
+    SYSCALL(PASSEREN, (memaddr) &semSwapPool, 0, 0);
 
     // Determine the ASID and the missing page number
     int currentASID = currentSupport->sup_asid;
@@ -114,7 +121,7 @@ void uTLB_PageFaultHandler() {
     
     // Pick a frame replacement by calling page replacement algorithm
     int selectedFrame = findReplacement();
-
+    AReplacementFound = selectedFrame;
     // Determine if frame i is occupied
     if (swapTable[selectedFrame].sw_pte->pte_entryLO & VALIDON) {
         // Occupied
@@ -160,7 +167,7 @@ void uTLB_PageFaultHandler() {
 
     ENABLEINTERRUPTS;
 
-    SYSCALL(VERHOGEN, &semSwapPool, 0, 0);
+    SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
 
     // Return control to the process by loading the processor state
     resume();

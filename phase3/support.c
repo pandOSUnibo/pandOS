@@ -15,7 +15,7 @@ support_t* allocSupport() {
     support_t *sup = NULL;
     if (stackSup != freeSupport){
         stackSup = (stackSup - sizeof(support_t*));
-        sup = stackSup;
+        sup = *stackSup;
     }
     return sup;
 }

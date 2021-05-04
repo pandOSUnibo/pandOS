@@ -11,31 +11,34 @@
 
 #define UPROCSTACKPG 0xBFFFF000
 
-// TODO - Usare NOPROC oppure farlo custom
-#define UNOCUPPIED (0x3F<<ASIDSHIFT)
+// TODO - Eliminare
+// #define UNOCUPPIED (0x3F<<ASIDSHIFT)
 // Semaphore used to wait the child process termination
 semaphore masterSemaphore;
-
+support_t *globSup; // TODO - da rimuovere
+void abreakA(){
+    
+}
 void initialize() {
     // Semaphore initialization
     for (int i = 0; i < DEVICE_TYPES; i++){
-        for (int j = 0; i < DEVICE_INSTANCES; j++){
+        for (int j = 0; j < DEVICE_INSTANCES; j++){
             semMutexDevices[i][j] = 1;
         }       
     }
     semSwapPool = 1;
     masterSemaphore = 0;
-
     initSupport();
 
     // Swap table initialization
     for (int i = 0; i < FRAMENUMBER; i++){
-        swapTable[i].sw_pte->pte_entryHI = UNOCUPPIED;
+        swapTable[i].sw_asid = NOPROC;
     }
     
 }
 
-int test(void) {
+
+void test(void) {
     initialize();
 
     // Initialize processor state equal for all U-procs
@@ -46,18 +49,18 @@ int test(void) {
     p.status = IEPON | IMON | TEBITON | USERPON;
 
     support_t *sup;
-    sup = allocSupport();
     for (int id = 1; id <= UPROCNUMBER; id++) {
         p.entry_hi = (id << ASIDSHIFT);
-
+        sup = allocSupport();
+        globSup = sup;
         // Initialize Support Structure for the i-th U-proc
         sup->sup_asid = id;
-        sup->sup_exceptContext[PGFAULTEXCEPT].c_pc = uTLB_PageFaultHandler; // TODO: metti uTLB_Handler
-        sup->sup_exceptContext[GENERALEXCEPT].c_pc = 0; // TODO: metti GeneralExceptionHandler
+        sup->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) &uTLB_PageFaultHandler; // TODO: metti uTLB_Handler
+        sup->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) &generalExceptionHandler; 
         sup->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPON | IMON | TEBITON;
         sup->sup_exceptContext[GENERALEXCEPT].c_status = IEPON | IMON | TEBITON; // GeneralExceptionHandler
-        sup->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr = &(sup->sup_stackGen[499]);
-        sup->sup_exceptContext[GENERALEXCEPT].c_stackPtr = &(sup->sup_stackGen[499]);
+        sup->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr = (memaddr) &(sup->sup_stackGen[499]);
+        sup->sup_exceptContext[GENERALEXCEPT].c_stackPtr = (memaddr) &(sup->sup_stackGen[499]);
 
         int row;
         for(row = 0; row<USERPGTBLSIZE-1; row++) {
@@ -68,13 +71,13 @@ int test(void) {
         sup->sup_privatePgTbl[row].pte_entryHI = UPROCSTACKPG + (row<<VPNSHIFT);
         sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON | GLOBALON;
         // TODO: Call SYS1 on U-proc
-        SYSCALL(CREATEPROCESS, (int)&p, (int)sup, 0);
+        SYSCALL(CREATEPROCESS, (memaddr) &p, (memaddr)sup, 0);
 
     }
 
     // TODO: è sempre UPROCNUMBER?
     for (int i = 0; i < UPROCNUMBER; i++){
-        passeren(&masterSemaphore);
+        SYSCALL(PASSEREN, (memaddr) &masterSemaphore, 0, 0);
     }
     termProcess();
 }

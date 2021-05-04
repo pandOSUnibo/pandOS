@@ -19,6 +19,10 @@
 
 #define DEVREGAREA ((devregarea_t *)RAMBASEADDR)
 
+void Cbreak(){
+
+}
+
 /**
  * @brief Maps a bitmask-like unsigned int to the
  * index of its corresponding "on" bit.
@@ -47,6 +51,7 @@ HIDDEN int mapToInt(unsigned int map) {
 		case 0x00000080:
 			return 7;
 		default:
+			Cbreak();
 			PANIC();
 			return -1;
 	}

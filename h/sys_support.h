@@ -20,6 +20,7 @@
 
 extern semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
+extern void generalExceptionHandler();
 extern void trapExceptionHandler(support_t *currentSupport);
 
 #endif

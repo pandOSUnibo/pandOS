@@ -7,6 +7,10 @@
 
 volatile cpu_t sliceStart;
 
+void deadLock(){
+	
+}
+
 /**
  * @brief Preemptive round-robin scheduler with time slice value of 5ms.
  * 
@@ -34,6 +38,7 @@ void schedule() {
 
 		// Deadlock state
 		if (processCount > 0 && softBlockCount == 0) {
+			deadLock();
 			PANIC();
 		}
 	}

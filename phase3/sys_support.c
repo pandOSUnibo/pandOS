@@ -31,13 +31,13 @@ void terminate(support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     // Check if the process holds a mutex semaphore
     if(semMutexDevices[PRINTSEM][devNumber] == 0){
-        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);
+        SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);
     }
     if(semMutexDevices[TERMWRSEM][devNumber] == 0){
-         SYSCALL(VERHOGEN, semMutexDevices[TERMWRSEM][devNumber], 0, 0);
+         SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
     }
     if(semMutexDevices[TERMRDSEM][devNumber] == 0){
-         SYSCALL(VERHOGEN, semMutexDevices[TERMRDSEM][devNumber], 0, 0);
+         SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     }
 
     // TODO - check if holding mutual exclusion semaphore
@@ -50,7 +50,7 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
     int retValue = 0;
     // Check if the address and the length are valid
     if(virtAddr >= (char *) VPNBASE && ((virtAddr + len) <= (char *) VPNTOP) && len <= 128 && len >= 0) {
-        SYSCALL(PASSEREN, semMutexDevices[PRINTSEM][devNumber], 0, 0);
+        SYSCALL(PASSEREN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);
         for (int i = 0; i < len; i++) {
             if(*((int *)DEVREG(PRNTINT, devNumber, STATUS)) == READY) {
                 *((char *)DEVREG(PRNTINT, devNumber, DATA0)) = *(virtAddr);
@@ -65,7 +65,7 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
             }
         }
         currentSupport->sup_exceptState->reg_v0 = retValue;
-        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);  
+        SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);  
     } 
     else {
         terminate(currentSupport);
@@ -77,7 +77,7 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int retValue = 0;
     // Check if the address and the lenght are valid
     if(virtAddr >=  (char *) VPNBASE && ((virtAddr + len) <=  (char *) VPNTOP) && len <= 128 && len >= 0) {
-        SYSCALL(PASSEREN, semMutexDevices[TERMWRSEM][devNumber], 0, 0);
+        SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
         for (int i = 0; i < len; i++) {
             int ioStatus = OKCHARTRANS;
             if((*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)) & TERMSTATUSMASK) == READY && ioStatus == OKCHARTRANS) {
@@ -93,7 +93,7 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
             }
         }
         currentSupport->sup_exceptState->reg_v0 = retValue;
-        SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);  
+        SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);  
     } 
     else {
         terminate(currentSupport);
@@ -106,7 +106,7 @@ void readTerminal(char *buffer, support_t *currentSupport){
     int retValue = 0;
     int ioStatus;
     char recvd = ' ';
-    SYSCALL(PASSEREN, semMutexDevices[TERMRDSEM][devNumber], 0, 0);
+    SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     // Check if the buffer address is valid, if the device is ready and if the last character
     // read is different from the end of line
     while(buffer >=  (char *) VPNBASE && (buffer <=  (char *) VPNTOP) && (*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) == READY && recvd != EOL) {
@@ -125,7 +125,7 @@ void readTerminal(char *buffer, support_t *currentSupport){
             break;
         }
     }
-    SYSCALL(VERHOGEN, semMutexDevices[PRINTSEM][devNumber], 0, 0);
+    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);
     // Terminate the process if the buffer is an invalid adress
     if((*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) != READY){
         retValue = -(*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)));

@@ -7,7 +7,7 @@
 
 #define POOLSTART (RAMSTART + (32 * PAGESIZE))
 #define POOLEND (POOLSTART + FRAMENUMBER * PAGESIZE)
-#define PFNMASK 0x3FFFF000
+#define PFNMASK 0xFFFFF000
 #define PFNSHIFT 12
 // Get PFN from an entry_low
 #define GETPFN(T) (T & PFNMASK) >> PFNSHIFT
@@ -24,7 +24,7 @@
 swap_t swapTable[FRAMENUMBER];
 semaphore semSwapPool;
 
-typedef unsigned int flashaddr;
+unsigned int address;
 
 int AReplacementFound = 1000; //TODO: Rimuovere 
 
@@ -34,6 +34,13 @@ int AReplacementFound = 1000; //TODO: Rimuovere
 
 pteEntry_t* findEntry(int pageNumber) {
     return &(currentProcess->p_supportStruct->sup_privatePgTbl[pageNumber]);
+}
+
+// TODO - possibile soluzione al loop?
+// Funzione che ripristina lo stato salvato nella support structure
+// e non quello nella bios data page
+void resumeVM(support_t *currentSupport){
+    LDST((state_t *) &currentSupport->sup_exceptState[PGFAULTEXCEPT]);
 }
 
 int findReplacement() {
@@ -65,25 +72,25 @@ void A2break(){
 
 }
 
-void executeFlashAction(int deviceNumber, memaddr frameLocation, unsigned int command, support_t *currentSupport) {
+void executeFlashAction(int deviceNumber, unsigned int primaryBlock, unsigned int command, support_t *currentSupport) {
     // Obtain the mutex on the device
-    SYSCALL(PASSEREN, semMutexDevices[FLASHINT][deviceNumber], 0, 0);
-    *((flashaddr *)DEVREG(FLASHINT, deviceNumber, DATA0)) = frameLocation;
-    A2break();
+    memaddr primaryAddress = (primaryBlock << PFNSHIFT) + POOLSTART;
+    SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHINT][deviceNumber], 0, 0);
+    *((unsigned int *)DEVREG(FLASHINT, deviceNumber, DATA0)) = primaryAddress;
 
     // Disabling interrupt doesn't interfere with SYS5, since SYSCALLS aren't
     // interrupts
     DISABLEINTERRUPTS;
-
+    
     *((unsigned int *)DEVREG(FLASHINT, deviceNumber, COMMAND)) = command;
+    address = primaryAddress;
     // Wait for the device
     // The device ACK is handled by SYS5
     unsigned int deviceStatus = SYSCALL(IOWAIT, FLASHINT, deviceNumber, FALSE);
 
     ENABLEINTERRUPTS;
-
     // Release the mutex
-    SYSCALL(VERHOGEN, semMutexDevices[FLASHINT][deviceNumber], 0, 0);
+    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[FLASHINT][deviceNumber], 0, 0);
 
     if (deviceStatus != READY) {
         // Release the mutex on the swap pool semaphore
@@ -93,14 +100,14 @@ void executeFlashAction(int deviceNumber, memaddr frameLocation, unsigned int co
     }
 }
 
-void readFrameFromFlash(int deviceNumber, flashaddr flashLocation, memaddr frameLocation, support_t *currentSupport) {
-    unsigned int command = FLASHREAD | (flashLocation << FLASHADDRSHIFT);
-    executeFlashAction(deviceNumber, frameLocation, command, currentSupport);
+void readFrameFromFlash(int deviceNumber, unsigned int flashBlock, unsigned int primaryBlock, support_t *currentSupport) {
+    unsigned int command = FLASHREAD | (flashBlock << FLASHADDRSHIFT);
+    executeFlashAction(deviceNumber, primaryBlock, command, currentSupport);
 }
 
-void writeFrameToFlash(int deviceNumber, flashaddr flashLocation , memaddr frameLocation, support_t *currentSupport) {
-    unsigned int command = FLASHWRITE | (flashLocation << FLASHADDRSHIFT);
-    executeFlashAction(deviceNumber, frameLocation, command, currentSupport);
+void writeFrameToFlash(int deviceNumber, unsigned int flashBlock, unsigned int primaryBlock, support_t *currentSupport) {
+    unsigned int command = FLASHWRITE | (flashBlock << FLASHADDRSHIFT);
+    executeFlashAction(deviceNumber, primaryBlock, command, currentSupport);
 }
 
 void uTLB_PageFaultHandler() {
@@ -142,7 +149,7 @@ void uTLB_PageFaultHandler() {
 
         // Update process x's backing store
         // TODO: quale device?? Ora metto occupiedASID-1 temporaneamente
-        writeFrameToFlash(occupiedASID-1, occupiedPageNumber,  GETPFN(occupiedPageTable->pte_entryLO), currentSupport);
+        writeFrameToFlash(occupiedASID-1, occupiedPageNumber, GETPFN(occupiedPageTable->pte_entryLO), currentSupport);
 
         // Re-enable interrupts
         ENABLEINTERRUPTS;
@@ -166,11 +173,13 @@ void uTLB_PageFaultHandler() {
     updateTLB(&(currentSupport->sup_privatePgTbl[missingPageNumber]));
 
     ENABLEINTERRUPTS;
-
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
-
+    A2break();    
     // Return control to the process by loading the processor state
+    // Qui fa un loop, mettere il bp su A2break e notare come
+    // vengano sempre ripetute queste due funzioni ()
     resume();
+    //resumeVM(currentSupport); // TODO - possibile soluzione
 }
 
 void uTLB_RefillHandler() {

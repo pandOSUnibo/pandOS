@@ -146,7 +146,7 @@ void getTod(support_t *currentSupport) {
 
 void syscallExceptionHandler(int sysId, support_t *currentSupport) {
     // Get arguments for syscalls
-	volatile unsigned int arg1 = EXCSTATE->reg_a1;
+	volatile unsigned int arg1 = EXCSTATE->reg_a1;  //TODO: non si puo usare excstate a livello supporto
 	volatile unsigned int arg2 = EXCSTATE->reg_a2;
     
     switch (sysId) {
@@ -177,12 +177,11 @@ void trapExceptionHandler(support_t *currentSupport) {
 }
 
 void generalExceptionHandler() {
-    // Get syscall code
-    volatile unsigned int sysId = EXCSTATE->reg_a0;
     
-    // Increment the PC by one word so that when control returns to the
-	// process, it does not perform a syscall again
     support_t *currentSupport = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
+
+    // Get syscall code
+    volatile unsigned int sysId = currentSupport->sup_exceptState[GENERALEXCEPT].reg_a0;
 
     if(sysId <= 13) {
         syscallExceptionHandler(sysId, currentSupport);

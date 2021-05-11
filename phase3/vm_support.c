@@ -2,6 +2,8 @@
 
 #include "initial.h"
 #include "exceptions.h"
+
+#include "init_proc.h"
 #include "vm_support.h"
 #include "sys_support.h"
 
@@ -32,7 +34,7 @@ int AReplacementFound = 1000; //TODO: Rimuovere
 
 // TODO: Fare un typedef per il tipo register (=unsigned int)?
 
-pteEntry_t* findEntry(int pageNumber) {
+pteEntry_t* findEntry(unsigned int pageNumber) {
     return &(currentProcess->p_supportStruct->sup_privatePgTbl[pageNumber]);
 }
 
@@ -40,7 +42,7 @@ pteEntry_t* findEntry(int pageNumber) {
 // Funzione che ripristina lo stato salvato nella support structure
 // e non quello nella bios data page
 void resumeVM(support_t *currentSupport){
-    LDST((state_t *) &currentSupport->sup_exceptState[PGFAULTEXCEPT]);
+    LDST((state_t *) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
 
 int findReplacement() {
@@ -148,7 +150,6 @@ void uTLB_PageFaultHandler() {
         updateTLB(occupiedPageTable);
 
         // Update process x's backing store
-        // TODO: quale device?? Ora metto occupiedASID-1 temporaneamente
         writeFrameToFlash(occupiedASID-1, occupiedPageNumber, GETPFN(occupiedPageTable->pte_entryLO), currentSupport);
 
         // Re-enable interrupts
@@ -178,15 +179,19 @@ void uTLB_PageFaultHandler() {
     // Return control to the process by loading the processor state
     // Qui fa un loop, mettere il bp su A2break e notare come
     // vengano sempre ripetute queste due funzioni ()
-    resume();
-    //resumeVM(currentSupport); // TODO - possibile soluzione
+    //resume();
+    resumeVM(currentSupport); // TODO - possibile soluzione
 }
+
+unsigned int debugEntryLo;
 
 void uTLB_RefillHandler() {
     // Get the page number
-    int pageNumber = GETVPN(EXCSTATE->entry_hi);
+    unsigned int pageNumber = GETVPN(EXCSTATE->entry_hi);
 
     pteEntry_t *entry = findEntry(pageNumber);
+
+    debugEntryLo = entry->pte_entryLO;
 
     setENTRYHI(entry->pte_entryHI);
     setENTRYLO(entry->pte_entryLO);

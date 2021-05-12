@@ -19,12 +19,16 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
 #define EOL '\n'
 
+
 // TODO - Linee troppo lunghe!!!
 
 void resumeSupport(support_t *currentSupport){
     // TODO - va incrementato anche t9?
     currentSupport->sup_exceptState->pc_epc += WORDLEN;
     LDCXT(currentSupport->sup_exceptState->reg_sp, currentSupport->sup_exceptState->status, currentSupport->sup_exceptState->pc_epc);
+}
+void A3break(){
+
 }
 
 void terminate(support_t *currentSupport) {
@@ -182,7 +186,7 @@ void generalExceptionHandler() {
 
     // Get syscall code
     volatile unsigned int sysId = currentSupport->sup_exceptState[GENERALEXCEPT].reg_a0;
-
+    A3break();
     if(sysId <= 13) {
         syscallExceptionHandler(sysId, currentSupport);
     }

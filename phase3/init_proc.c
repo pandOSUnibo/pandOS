@@ -67,14 +67,14 @@ void test(void) {
         for(row = 0; row<USERPGTBLSIZE-1; row++) {
             sup->sup_privatePgTbl[row].pte_entryHI = VPNBASE + (row << VPNSHIFT) + (id << ASIDSHIFT);
             //debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryHI;
-            sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON | GLOBALON;
+            sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON;
             debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryLO;
         }
         
         debugEntry();
         sup->sup_privatePgTbl[row].pte_entryHI = UPROCSTACKPG + (id << ASIDSHIFT);
         debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryHI;
-        sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON | GLOBALON;
+        sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON; // TODO perchè c'era DIRTYON | GLOBALON? Anche su riga 70
         // TODO: Call SYS1 on U-proc
         SYSCALL(CREATEPROCESS, (memaddr) &p, (memaddr)sup, 0);
 

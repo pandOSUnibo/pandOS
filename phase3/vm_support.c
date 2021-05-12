@@ -1,11 +1,13 @@
 #include <umps3/umps/libumps.h>
 
+
 #include "initial.h"
 #include "exceptions.h"
 
 #include "init_proc.h"
 #include "vm_support.h"
 #include "sys_support.h"
+
 
 #define POOLSTART (RAMSTART + (32 * PAGESIZE))
 #define POOLEND (POOLSTART + FRAMENUMBER * PAGESIZE)
@@ -15,7 +17,7 @@
 #define GETPFN(T) (T & PFNMASK) >> PFNSHIFT
 // Get VPN from an entry_hi
 #define GETVPN(T) (T & VPNMASK) >> VPNSHIFT
-#define SETPFN(TO, FROM) TO = (TO & PFNMASK) | (FROM << PFNSHIFT)
+#define SETPFN(TO, FROM) TO = (TO & ~PFNMASK) | (FROM << PFNSHIFT)
 
 // TODO: Usarlo anche per le fasi precedenti?
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
@@ -26,7 +28,6 @@
 swap_t swapTable[FRAMENUMBER];
 semaphore semSwapPool;
 
-unsigned int address;
 
 int AReplacementFound = 1000; //TODO: Rimuovere 
 
@@ -62,7 +63,7 @@ void updateTLB(pteEntry_t *updatedEntry){
     // Check if the updated TLB entry is cached in the TLB
     setENTRYHI(updatedEntry->pte_entryHI);
     TLBP();
-    
+
     if ((getINDEX() & PRESENTFLAG) == CACHED) {
         // Update the TLB
         setENTRYLO(updatedEntry->pte_entryLO);
@@ -85,7 +86,6 @@ void executeFlashAction(int deviceNumber, unsigned int primaryBlock, unsigned in
     DISABLEINTERRUPTS;
     
     *((unsigned int *)DEVREG(FLASHINT, deviceNumber, COMMAND)) = command;
-    address = primaryAddress;
     // Wait for the device
     // The device ACK is handled by SYS5
     unsigned int deviceStatus = SYSCALL(IOWAIT, FLASHINT, deviceNumber, FALSE);
@@ -149,6 +149,7 @@ void uTLB_PageFaultHandler() {
         // Update the TLB, if needed
         updateTLB(occupiedPageTable);
 
+        // TODO - perchè in mutua esclusione? 
         // Update process x's backing store
         writeFrameToFlash(occupiedASID-1, occupiedPageNumber, GETPFN(occupiedPageTable->pte_entryLO), currentSupport);
 
@@ -167,7 +168,7 @@ void uTLB_PageFaultHandler() {
     DISABLEINTERRUPTS;
     
     // Update the process' page table
-    currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON;
+    currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON; 
     SETPFN(currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO, selectedFrame);
 
     // Update the TLB
@@ -175,7 +176,6 @@ void uTLB_PageFaultHandler() {
 
     ENABLEINTERRUPTS;
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
-    A2break();    
     // Return control to the process by loading the processor state
     // Qui fa un loop, mettere il bp su A2break e notare come
     // vengano sempre ripetute queste due funzioni ()

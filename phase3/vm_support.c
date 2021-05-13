@@ -78,7 +78,7 @@ void A2break(){
 void executeFlashAction(int deviceNumber, unsigned int primaryBlock, unsigned int command, support_t *currentSupport) {
     // Obtain the mutex on the device
     memaddr primaryAddress = (primaryBlock << PFNSHIFT) + POOLSTART;
-    SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHINT][deviceNumber], 0, 0);
+    SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
     *((unsigned int *)DEVREG(FLASHINT, deviceNumber, DATA0)) = primaryAddress;
 
     // Disabling interrupt doesn't interfere with SYS5, since SYSCALLS aren't
@@ -92,7 +92,7 @@ void executeFlashAction(int deviceNumber, unsigned int primaryBlock, unsigned in
 
     ENABLEINTERRUPTS;
     // Release the mutex
-    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[FLASHINT][deviceNumber], 0, 0);
+    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
 
     if (deviceStatus != READY) {
         // Release the mutex on the swap pool semaphore
@@ -176,6 +176,7 @@ void uTLB_PageFaultHandler() {
 
     ENABLEINTERRUPTS;
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
+    A2break();
     // Return control to the process by loading the processor state
     // Qui fa un loop, mettere il bp su A2break e notare come
     // vengano sempre ripetute queste due funzioni ()

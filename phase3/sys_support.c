@@ -4,10 +4,6 @@
 #include "sys_support.h"
 #include "init_proc.h"
 
-#define PRINTSEM 3
-#define TERMRDSEM 4
-#define TERMWRSEM 5
-
 semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
 // TODO - passare current support come parametro?
@@ -147,12 +143,15 @@ void getTod(support_t *currentSupport) {
     STCK(currentSupport->sup_exceptState->reg_v0);
 }
 
+int debugSysId;
 
 void syscallExceptionHandler(int sysId, support_t *currentSupport) {
+
+    debugSysId = sysId;
     // Get arguments for syscalls
-	volatile unsigned int arg1 = EXCSTATE->reg_a1;  //TODO: non si puo usare excstate a livello supporto
-	volatile unsigned int arg2 = EXCSTATE->reg_a2;
-    
+    volatile unsigned int arg1 = currentSupport->sup_exceptState[GENERALEXCEPT].reg_a1;
+    volatile unsigned int arg2 = currentSupport->sup_exceptState[GENERALEXCEPT].reg_a2;
+
     switch (sysId) {
     case TERMINATE:
         terminate(currentSupport);

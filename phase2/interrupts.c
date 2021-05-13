@@ -78,6 +78,8 @@ HIDDEN void unblockLoad(int deviceType, int instanceID,
 	}
 }
 
+int debugDevType; 
+
 /**
  * @brief Handles non-timer interrupts.
  * 
@@ -86,6 +88,7 @@ HIDDEN void unblockLoad(int deviceType, int instanceID,
  * @remark DEVICE_TYPES is defined in initial.h.
  */
 HIDDEN void nonTimerInterrupt(int deviceType) {
+	debugDevType = deviceType;
 	unsigned int instanceMap = DEVREGAREA->interrupt_dev[deviceType];
 
 	// Get the device instance with highest priority

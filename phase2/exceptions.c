@@ -30,6 +30,8 @@ cpu_t elapsedTime() {
 	return clockTime - sliceStart;
 }
 
+void debugPODStop(){}
+
 /**
  * @brief Pass Up or Die, for handling exceptions numbered 9 and above,
  * Program Trap and TLB exceptions. Which action between the 2 is taken 
@@ -51,6 +53,7 @@ HIDDEN void passUpOrDie(int index) {
 		// Pass up the exception to the Support Level
 		supportStructure->sup_exceptState[index] = *EXCSTATE;
 		context_t *context = &(supportStructure->sup_exceptContext[index]);
+		debugPODStop();
 		LDCXT(context->c_stackPtr, context->c_status, context->c_pc);
 	}
 }
@@ -173,8 +176,12 @@ void Bbreak(){
 	
 }
 
+unsigned int debugCause;
+
 void exceptionHandler() {
 	state_t *exceptionState = EXCSTATE;
+
+	debugCause = exceptionState->cause;
 
 	volatile unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
 	// Increment the PC by one word so that when control returns to the

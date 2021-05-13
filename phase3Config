@@ -1,6 +1,6 @@
 {
     "boot": {
-        "core-file": "/home/elements72/Desktop/pandOS/pandOS/build/kernel.core.umps",
+        "core-file": "/home/edo/Documents/University/Sistemi Operativi/pandOS/build/kernel.core.umps",
         "load-core-file": true
     },
     "bootstrap-rom": "/usr/share/umps3/coreboot.rom.umps",
@@ -108,7 +108,7 @@
     "num-ram-frames": 128,
     "symbol-table": {
         "asid": 64,
-        "file": "/home/elements72/Desktop/pandOS/pandOS/build/kernel.stab.umps"
+        "file": "/home/edo/Documents/University/Sistemi Operativi/pandOS/build/kernel.stab.umps"
     },
     "tlb-floor-address": "0x80000000",
     "tlb-size": 16

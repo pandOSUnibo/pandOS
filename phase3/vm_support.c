@@ -1,19 +1,23 @@
 #include <umps3/umps/libumps.h>
 
+
 #include "initial.h"
 #include "exceptions.h"
+
+#include "init_proc.h"
 #include "vm_support.h"
 #include "sys_support.h"
 
+
 #define POOLSTART (RAMSTART + (32 * PAGESIZE))
 #define POOLEND (POOLSTART + FRAMENUMBER * PAGESIZE)
-#define PFNMASK 0x3FFFF000
+#define PFNMASK 0xFFFFF000
 #define PFNSHIFT 12
 // Get PFN from an entry_low
 #define GETPFN(T) (T & PFNMASK) >> PFNSHIFT
 // Get VPN from an entry_hi
 #define GETVPN(T) (T & VPNMASK) >> VPNSHIFT
-#define SETPFN(TO, FROM) TO = (TO & PFNMASK) | (FROM << PFNSHIFT)
+#define SETPFN(TO, FROM) TO = (TO & ~PFNMASK) | (FROM << PFNSHIFT)
 
 // TODO: Usarlo anche per le fasi precedenti?
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
@@ -24,7 +28,6 @@
 swap_t swapTable[FRAMENUMBER];
 semaphore semSwapPool;
 
-typedef unsigned int flashaddr;
 
 int AReplacementFound = 1000; //TODO: Rimuovere 
 
@@ -32,8 +35,15 @@ int AReplacementFound = 1000; //TODO: Rimuovere
 
 // TODO: Fare un typedef per il tipo register (=unsigned int)?
 
-pteEntry_t* findEntry(int pageNumber) {
+pteEntry_t* findEntry(unsigned int pageNumber) {
     return &(currentProcess->p_supportStruct->sup_privatePgTbl[pageNumber]);
+}
+
+// TODO - possibile soluzione al loop?
+// Funzione che ripristina lo stato salvato nella support structure
+// e non quello nella bios data page
+void resumeVM(support_t *currentSupport){
+    LDST((state_t *) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
 
 int findReplacement() {
@@ -53,7 +63,7 @@ void updateTLB(pteEntry_t *updatedEntry){
     // Check if the updated TLB entry is cached in the TLB
     setENTRYHI(updatedEntry->pte_entryHI);
     TLBP();
-    
+
     if ((getINDEX() & PRESENTFLAG) == CACHED) {
         // Update the TLB
         setENTRYLO(updatedEntry->pte_entryLO);
@@ -65,25 +75,24 @@ void A2break(){
 
 }
 
-void executeFlashAction(int deviceNumber, memaddr frameLocation, unsigned int command, support_t *currentSupport) {
+void executeFlashAction(int deviceNumber, unsigned int primaryBlock, unsigned int command, support_t *currentSupport) {
     // Obtain the mutex on the device
-    SYSCALL(PASSEREN, semMutexDevices[FLASHINT][deviceNumber], 0, 0);
-    *((flashaddr *)DEVREG(FLASHINT, deviceNumber, DATA0)) = frameLocation;
-    A2break();
+    memaddr primaryAddress = (primaryBlock << PFNSHIFT) + POOLSTART;
+    SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
+    *((unsigned int *)DEVREG(FLASHINT, deviceNumber, DATA0)) = primaryAddress;
 
     // Disabling interrupt doesn't interfere with SYS5, since SYSCALLS aren't
     // interrupts
     DISABLEINTERRUPTS;
-
+    
     *((unsigned int *)DEVREG(FLASHINT, deviceNumber, COMMAND)) = command;
     // Wait for the device
     // The device ACK is handled by SYS5
     unsigned int deviceStatus = SYSCALL(IOWAIT, FLASHINT, deviceNumber, FALSE);
 
     ENABLEINTERRUPTS;
-
     // Release the mutex
-    SYSCALL(VERHOGEN, semMutexDevices[FLASHINT][deviceNumber], 0, 0);
+    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
 
     if (deviceStatus != READY) {
         // Release the mutex on the swap pool semaphore
@@ -93,14 +102,14 @@ void executeFlashAction(int deviceNumber, memaddr frameLocation, unsigned int co
     }
 }
 
-void readFrameFromFlash(int deviceNumber, flashaddr flashLocation, memaddr frameLocation, support_t *currentSupport) {
-    unsigned int command = FLASHREAD | (flashLocation << FLASHADDRSHIFT);
-    executeFlashAction(deviceNumber, frameLocation, command, currentSupport);
+void readFrameFromFlash(int deviceNumber, unsigned int flashBlock, unsigned int primaryBlock, support_t *currentSupport) {
+    unsigned int command = FLASHREAD | (flashBlock << FLASHADDRSHIFT);
+    executeFlashAction(deviceNumber, primaryBlock, command, currentSupport);
 }
 
-void writeFrameToFlash(int deviceNumber, flashaddr flashLocation , memaddr frameLocation, support_t *currentSupport) {
-    unsigned int command = FLASHWRITE | (flashLocation << FLASHADDRSHIFT);
-    executeFlashAction(deviceNumber, frameLocation, command, currentSupport);
+void writeFrameToFlash(int deviceNumber, unsigned int flashBlock, unsigned int primaryBlock, support_t *currentSupport) {
+    unsigned int command = FLASHWRITE | (flashBlock << FLASHADDRSHIFT);
+    executeFlashAction(deviceNumber, primaryBlock, command, currentSupport);
 }
 
 void uTLB_PageFaultHandler() {
@@ -140,9 +149,9 @@ void uTLB_PageFaultHandler() {
         // Update the TLB, if needed
         updateTLB(occupiedPageTable);
 
+        // TODO - perchè in mutua esclusione? 
         // Update process x's backing store
-        // TODO: quale device?? Ora metto occupiedASID-1 temporaneamente
-        writeFrameToFlash(occupiedASID-1, occupiedPageNumber,  GETPFN(occupiedPageTable->pte_entryLO), currentSupport);
+        writeFrameToFlash(occupiedASID-1, occupiedPageNumber, GETPFN(occupiedPageTable->pte_entryLO), currentSupport);
 
         // Re-enable interrupts
         ENABLEINTERRUPTS;
@@ -159,25 +168,31 @@ void uTLB_PageFaultHandler() {
     DISABLEINTERRUPTS;
     
     // Update the process' page table
-    currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON;
+    currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON; 
     SETPFN(currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO, selectedFrame);
 
     // Update the TLB
     updateTLB(&(currentSupport->sup_privatePgTbl[missingPageNumber]));
 
     ENABLEINTERRUPTS;
-
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
-
+    A2break();
     // Return control to the process by loading the processor state
-    resume();
+    // Qui fa un loop, mettere il bp su A2break e notare come
+    // vengano sempre ripetute queste due funzioni ()
+    //resume();
+    resumeVM(currentSupport); // TODO - possibile soluzione
 }
+
+unsigned int debugEntryLo;
 
 void uTLB_RefillHandler() {
     // Get the page number
-    int pageNumber = GETVPN(EXCSTATE->entry_hi);
+    unsigned int pageNumber = GETVPN(EXCSTATE->entry_hi);
 
     pteEntry_t *entry = findEntry(pageNumber);
+
+    debugEntryLo = entry->pte_entryLO;
 
     setENTRYHI(entry->pte_entryHI);
     setENTRYLO(entry->pte_entryLO);

@@ -15,6 +15,11 @@
 #define DEVREG(IntlineNo, DevNo, Reg)  (DEVADDRBASE(IntlineNo, DevNo) +  (Reg * WORDLEN))
 #define DEVADDRBASE(IntlineNo, DevNo) (memaddr)(0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10))
 
+#define FLASHSEM 1
+#define PRINTSEM 3
+#define TERMRDSEM 4
+#define TERMWRSEM 5
+
 #include "pandos_const.h"
 #include "pandos_types.h"
 

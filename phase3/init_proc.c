@@ -16,9 +16,10 @@
 // Semaphore used to wait the child process termination
 semaphore masterSemaphore;
 support_t *globSup; // TODO - da rimuovere
-void abreakA(){
-    
-}
+unsigned int debugPrivatePgTbl; // TODO: da rimuovere
+
+void debugEntry(){}
+
 void initialize() {
     // Semaphore initialization
     for (int i = 0; i < DEVICE_TYPES; i++){
@@ -64,12 +65,16 @@ void test(void) {
 
         int row;
         for(row = 0; row<USERPGTBLSIZE-1; row++) {
-            sup->sup_privatePgTbl[row].pte_entryHI = VPNBASE + (row<<VPNSHIFT);
-            sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON | GLOBALON;
+            sup->sup_privatePgTbl[row].pte_entryHI = VPNBASE + (row << VPNSHIFT) + (id << ASIDSHIFT);
+            //debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryHI;
+            sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON;
+            debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryLO;
         }
-            
-        sup->sup_privatePgTbl[row].pte_entryHI = UPROCSTACKPG + (row<<VPNSHIFT);
-        sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON | GLOBALON;
+        
+        debugEntry();
+        sup->sup_privatePgTbl[row].pte_entryHI = UPROCSTACKPG + (id << ASIDSHIFT);
+        debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryHI;
+        sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON; // TODO perchè c'era DIRTYON | GLOBALON? Anche su riga 70
         // TODO: Call SYS1 on U-proc
         SYSCALL(CREATEPROCESS, (memaddr) &p, (memaddr)sup, 0);
 

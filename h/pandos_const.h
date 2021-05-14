@@ -95,7 +95,7 @@
 
 
 // EntryHI register constants
-#define VPNMASK     0x3FFFF000
+#define GETPAGENO     0x3FFFF000
 #define GETSHAREFLAG  0xC0000000
 #define VPNSHIFT      12
 #define ASIDSHIFT     6

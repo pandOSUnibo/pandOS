@@ -182,11 +182,11 @@ void exceptionHandler() {
 	state_t *exceptionState = EXCSTATE;
 
 	debugCause = exceptionState->cause;
+	exceptionState->pc_epc += WORDLEN;
 
 	volatile unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
 	// Increment the PC by one word so that when control returns to the
 	// process, it does not perform a syscall again
-	exceptionState->pc_epc += WORDLEN;
 
 	switch (cause) {
 	case INT:
@@ -211,6 +211,7 @@ void exceptionHandler() {
 		break;
 	case SYS:
 		// Syscalls
+		
 		syscallHandler(exceptionState->status & USERPON);
 		break;
 	default:

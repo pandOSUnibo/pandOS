@@ -9,15 +9,16 @@
 #include "sys_support.h"
 
 
+// Importante: POOLSTART deve essere un multiplo di 4K
 #define POOLSTART (RAMSTART + (32 * PAGESIZE))
 #define POOLEND (POOLSTART + FRAMENUMBER * PAGESIZE)
-#define PFNMASK 0xFFFFF000
 #define PFNSHIFT 12
+#define PFNMASK 0xFFFFF000
 // Get PFN from an entry_low
-#define GETPFN(T) (T & PFNMASK) >> PFNSHIFT
-// Get VPN from an entry_hi
-#define GETVPN(T) (T & VPNMASK) >> VPNSHIFT
-#define SETPFN(TO, FROM) TO = (TO & ~PFNMASK) | (FROM << PFNSHIFT)
+#define GETPFN(T) ((T - POOLSTART) >> PFNSHIFT)
+// Get VPN frame number from an entry_hi
+#define GETVPN(T) ((T & GETPAGENO) >> VPNSHIFT)
+#define SETPFN(TO, N) TO = (TO & ~PFNMASK) | ((N << PFNSHIFT) + POOLSTART)
 
 // TODO: Usarlo anche per le fasi precedenti?
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
@@ -50,7 +51,7 @@ int findReplacement() {
     static int currentReplacementIndex = 0;
 
     int i = 0;
-    while((swapTable[(currentReplacementIndex + i) % FRAMENUMBER].sw_pte->pte_entryHI & VALIDON) && i < FRAMENUMBER)
+    while((swapTable[(currentReplacementIndex + i) % FRAMENUMBER].sw_pte->pte_entryLO & VALIDON) && i < FRAMENUMBER)
         ++i;
 
     i = (i == FRAMENUMBER) ? 1 : i;
@@ -74,10 +75,11 @@ void updateTLB(pteEntry_t *updatedEntry){
 void A2break(){
 
 }
+void ATLBbreak(){}
 
-void executeFlashAction(int deviceNumber, unsigned int primaryBlock, unsigned int command, support_t *currentSupport) {
+void executeFlashAction(int deviceNumber, unsigned int primaryPage, unsigned int command, support_t *currentSupport) {
     // Obtain the mutex on the device
-    memaddr primaryAddress = (primaryBlock << PFNSHIFT) + POOLSTART;
+    memaddr primaryAddress = (primaryPage << PFNSHIFT) + POOLSTART;
     SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
     *((unsigned int *)DEVREG(FLASHINT, deviceNumber, DATA0)) = primaryAddress;
 
@@ -112,6 +114,10 @@ void writeFrameToFlash(int deviceNumber, unsigned int flashBlock, unsigned int p
     executeFlashAction(deviceNumber, primaryBlock, command, currentSupport);
 }
 
+void aBreakPageNumber(){}
+
+void a2BreakPageNumber(){}
+
 void uTLB_PageFaultHandler() {
     // Get Current Process's Support Structure
     support_t *currentSupport = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
@@ -127,6 +133,7 @@ void uTLB_PageFaultHandler() {
     // Determine the ASID and the missing page number
     int currentASID = currentSupport->sup_asid;
     int missingPageNumber = GETVPN(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
+    aBreakPageNumber();
     
     // Pick a frame replacement by calling page replacement algorithm
     int selectedFrame = findReplacement();
@@ -151,14 +158,14 @@ void uTLB_PageFaultHandler() {
 
         // TODO - perchè in mutua esclusione? 
         // Update process x's backing store
-        writeFrameToFlash(occupiedASID-1, occupiedPageNumber, GETPFN(occupiedPageTable->pte_entryLO), currentSupport);
+        writeFrameToFlash(occupiedASID-1, occupiedPageNumber, selectedFrame, currentSupport);
 
         // Re-enable interrupts
         ENABLEINTERRUPTS;
     }
 
     // Read the contents from the flash device
-    readFrameFromFlash(currentASID - 1, missingPageNumber, GETPFN(swapTable[selectedFrame].sw_pte->pte_entryLO), currentSupport);
+    readFrameFromFlash(currentASID - 1, missingPageNumber, selectedFrame, currentSupport);
 
     // Update the swap pool table by setting the new ASID, page number and pointer to the process's page table entry
     swapTable[selectedFrame].sw_asid = currentASID;
@@ -173,6 +180,7 @@ void uTLB_PageFaultHandler() {
 
     // Update the TLB
     updateTLB(&(currentSupport->sup_privatePgTbl[missingPageNumber]));
+    ATLBbreak();
 
     ENABLEINTERRUPTS;
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
@@ -189,6 +197,7 @@ unsigned int debugEntryLo;
 void uTLB_RefillHandler() {
     // Get the page number
     unsigned int pageNumber = GETVPN(EXCSTATE->entry_hi);
+    a2BreakPageNumber();
 
     pteEntry_t *entry = findEntry(pageNumber);
 
@@ -198,6 +207,8 @@ void uTLB_RefillHandler() {
     setENTRYLO(entry->pte_entryLO);
     TLBWR();
 
+    //  TODO: Misura provvisoriiiia 
+    EXCSTATE->pc_epc -= WORDLEN;
     // Return control to the process by loading the processor state
     resume();
 }

@@ -132,7 +132,10 @@ void uTLB_PageFaultHandler() {
 
     // Determine the ASID and the missing page number
     int currentASID = currentSupport->sup_asid;
+    // TODO - trovare una gestione più carina per la pagina dello stack.
     int missingPageNumber = GETVPN(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
+    if (missingPageNumber > 31)
+        missingPageNumber = 31;
     aBreakPageNumber();
     
     // Pick a frame replacement by calling page replacement algorithm
@@ -193,11 +196,17 @@ void uTLB_PageFaultHandler() {
 }
 
 unsigned int debugEntryLo;
+unsigned int debugPageNumber;
 
 void uTLB_RefillHandler() {
     // Get the page number
-    unsigned int pageNumber = GETVPN(EXCSTATE->entry_hi);
+    unsigned int pageNumber;
+    if(EXCSTATE->entry_hi >= UPROCSTACKPG)
+        pageNumber = 31;
+    else
+        pageNumber = GETVPN(EXCSTATE->entry_hi);
     a2BreakPageNumber();
+    debugPageNumber = pageNumber;
 
     pteEntry_t *entry = findEntry(pageNumber);
 
@@ -207,8 +216,7 @@ void uTLB_RefillHandler() {
     setENTRYLO(entry->pte_entryLO);
     TLBWR();
 
-    //  TODO: Misura provvisoriiiia 
-    EXCSTATE->pc_epc -= WORDLEN;
+
     // Return control to the process by loading the processor state
     resume();
 }

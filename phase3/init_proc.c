@@ -9,7 +9,6 @@
 #include <umps3/umps/libumps.h>
 
 
-#define UPROCSTACKPG 0xBFFFF000
 
 // TODO - Eliminare
 // #define UNOCUPPIED (0x3F<<ASIDSHIFT)

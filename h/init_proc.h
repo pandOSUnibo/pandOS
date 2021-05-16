@@ -14,6 +14,8 @@
 
 #define VPNBASE 0x80000000
 #define VPNTOP  0x8001E000
+#define UPROCSTACKPG 0xBFFFF000
+
 
 extern void test(void);
 

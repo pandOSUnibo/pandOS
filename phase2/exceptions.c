@@ -122,6 +122,8 @@ HIDDEN void syscallHandler(unsigned int KUp) {
 		// KUp is 0 in kernel mode and 0x00000008
 		// in user mode
 		if (KUp == 0) {
+			// Increment the pc
+			EXCSTATE->pc_epc += WORDLEN;
 			switch (sysId) {
 			case CREATEPROCESS:
 				createProcess((state_t *) arg1, (support_t *) arg2);
@@ -182,7 +184,6 @@ void exceptionHandler() {
 	state_t *exceptionState = EXCSTATE;
 
 	debugCause = exceptionState->cause;
-	exceptionState->pc_epc += WORDLEN;
 
 	volatile unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
 	// Increment the PC by one word so that when control returns to the
@@ -211,7 +212,6 @@ void exceptionHandler() {
 		break;
 	case SYS:
 		// Syscalls
-		
 		syscallHandler(exceptionState->status & USERPON);
 		break;
 	default:

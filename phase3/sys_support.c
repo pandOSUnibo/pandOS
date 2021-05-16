@@ -20,8 +20,8 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
 void resumeSupport(support_t *currentSupport){
     // TODO - va incrementato anche t9?
-    currentSupport->sup_exceptState->pc_epc += WORDLEN;
-    LDCXT(currentSupport->sup_exceptState->reg_sp, currentSupport->sup_exceptState->status, currentSupport->sup_exceptState->pc_epc);
+    currentSupport->sup_exceptState[GENERALEXCEPT].pc_epc += WORDLEN;
+    LDST(&currentSupport->sup_exceptState[GENERALEXCEPT]);
 }
 void A3break(){
 
@@ -64,7 +64,7 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
                 break;
             }
         }
-        currentSupport->sup_exceptState->reg_v0 = retValue;
+        currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0 = retValue;
         SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);  
     } 
     else {
@@ -72,16 +72,19 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
     }
 }
 
+
 void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     int retValue = 0;
+    unsigned int command;
     // Check if the address and the lenght are valid
     if(virtAddr >=  (char *) VPNBASE && ((virtAddr + len) <=  (char *) VPNTOP) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
         for (int i = 0; i < len; i++) {
             int ioStatus = OKCHARTRANS;
             if((*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)) & TERMSTATUSMASK) == READY && ioStatus == OKCHARTRANS) {
-                *((char *)DEVREG(TERMINT, devNumber, TRANCOMMAND)) = (TRANSMITCHAR | (*(virtAddr)<<TERMTRANSHIFT));
+                command = (*(virtAddr)<<TERMTRANSHIFT) | TRANSMITCHAR;
+                *((unsigned int *)DEVREG(TERMINT, devNumber, TRANCOMMAND)) = command;
                 virtAddr++;
                 retValue++;
                 ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, 0);
@@ -92,13 +95,15 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
                 break;
             }
         }
-        currentSupport->sup_exceptState->reg_v0 = retValue;
-        SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);  
+        currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0 = retValue;
+        SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);  
     } 
     else {
         terminate(currentSupport);
     }
 }
+
+char *debugBuffer;
 
 // TODO - è possibile migliorare le condizioni del while?
 void readTerminal(char *buffer, support_t *currentSupport){
@@ -109,11 +114,13 @@ void readTerminal(char *buffer, support_t *currentSupport){
     SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     // Check if the buffer address is valid, if the device is ready and if the last character
     // read is different from the end of line
-    while(buffer >=  (char *) VPNBASE && (buffer <=  (char *) VPNTOP) && (*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) == READY && recvd != EOL) {
+    debugBuffer = buffer;
+    while((buffer >=  (char *) VPNBASE ) && (buffer <=  (char *) VPNTOP) && ((*((unsigned int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) == READY) && (recvd != EOL)) {
+        A3break();
         ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, 0);
         if(ioStatus == OKCHARTRANS){
             // check ioStatus if correct else break and return
-            recvd = (char)(DEVREG(TERMINT, devNumber, RECVSTATUS) >> TERMRECVSHIFT);
+            recvd = (char)((DEVREG(TERMINT, devNumber, RECVSTATUS) >> TERMRECVSHIFT));
             if(recvd != EOL) {
                 *buffer = recvd;
                 buffer++;
@@ -125,13 +132,13 @@ void readTerminal(char *buffer, support_t *currentSupport){
             break;
         }
     }
-    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);
+    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     // Terminate the process if the buffer is an invalid adress
     if((*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) != READY){
         retValue = -(*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)));
     }
     if((buffer >=  (char *) VPNBASE) && (buffer <=  (char *) VPNTOP)){
-        currentSupport->sup_exceptState->reg_v0 = retValue;
+        currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0 = retValue;
     }
     else{
         terminate(currentSupport);
@@ -140,7 +147,7 @@ void readTerminal(char *buffer, support_t *currentSupport){
 
 
 void getTod(support_t *currentSupport) {
-    STCK(currentSupport->sup_exceptState->reg_v0);
+    STCK(currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0);
 }
 
 int debugSysId;
@@ -185,7 +192,6 @@ void generalExceptionHandler() {
 
     // Get syscall code
     volatile unsigned int sysId = currentSupport->sup_exceptState[GENERALEXCEPT].reg_a0;
-    A3break();
     if(sysId <= 13) {
         syscallExceptionHandler(sysId, currentSupport);
     }

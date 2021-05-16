@@ -1,12 +1,12 @@
+#include <umps3/umps/arch.h>
 #include <umps3/umps/libumps.h>
 
-
-#include "initial.h"
 #include "exceptions.h"
+#include "initial.h"
 
 #include "init_proc.h"
-#include "vm_support.h"
 #include "sys_support.h"
+#include "vm_support.h"
 
 
 // Importante: POOLSTART deve essere un multiplo di 4K
@@ -14,11 +14,15 @@
 #define POOLEND (POOLSTART + FRAMENUMBER * PAGESIZE)
 #define PFNSHIFT 12
 #define PFNMASK 0xFFFFF000
+
+#define STACKPG 31
+
 // Get PFN from an entry_low
 #define GETPFN(T) ((T - POOLSTART) >> PFNSHIFT)
 // Get VPN frame number from an entry_hi
-#define GETVPN(T) ((T & GETPAGENO) >> VPNSHIFT)
+#define GETVPN(T) ((UPROCSTACKPG <= T && T <= USERSTACKTOP) ? STACKPG : ((T - VPNBASE) >> VPNSHIFT))
 #define SETPFN(TO, N) TO = (TO & ~PFNMASK) | ((N << PFNSHIFT) + POOLSTART)
+
 
 // TODO: Usarlo anche per le fasi precedenti?
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
@@ -36,6 +40,12 @@ int AReplacementFound = 1000; //TODO: Rimuovere
 
 // TODO: Fare un typedef per il tipo register (=unsigned int)?
 
+/**
+ * @brief Finds the matching entry for a page number.
+ * 
+ * @param pageNumber User process page number.
+ * @return Pointer to the corresponding entry.
+ */
 pteEntry_t* findEntry(unsigned int pageNumber) {
     return &(currentProcess->p_supportStruct->sup_privatePgTbl[pageNumber]);
 }
@@ -47,6 +57,11 @@ void resumeVM(support_t *currentSupport){
     LDST((state_t *) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
 
+/**
+ * @brief Finds the index of the 
+ * 
+ * @return int 
+ */
 int findReplacement() {
     static int currentReplacementIndex = 0;
 
@@ -81,13 +96,14 @@ void executeFlashAction(int deviceNumber, unsigned int primaryPage, unsigned int
     // Obtain the mutex on the device
     memaddr primaryAddress = (primaryPage << PFNSHIFT) + POOLSTART;
     SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
-    *((unsigned int *)DEVREG(FLASHINT, deviceNumber, DATA0)) = primaryAddress;
+    dtpreg_t *flashRegister = (dtpreg_t *) DEV_REG_ADDR(FLASHINT, deviceNumber);
+    flashRegister->data0 = primaryAddress;
 
     // Disabling interrupt doesn't interfere with SYS5, since SYSCALLS aren't
     // interrupts
     DISABLEINTERRUPTS;
     
-    *((unsigned int *)DEVREG(FLASHINT, deviceNumber, COMMAND)) = command;
+    flashRegister->command = command;
     // Wait for the device
     // The device ACK is handled by SYS5
     unsigned int deviceStatus = SYSCALL(IOWAIT, FLASHINT, deviceNumber, FALSE);
@@ -134,9 +150,6 @@ void uTLB_PageFaultHandler() {
     int currentASID = currentSupport->sup_asid;
     // TODO - trovare una gestione più carina per la pagina dello stack.
     int missingPageNumber = GETVPN(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
-    if (missingPageNumber > 31)
-        missingPageNumber = 31;
-    aBreakPageNumber();
     
     // Pick a frame replacement by calling page replacement algorithm
     int selectedFrame = findReplacement();
@@ -201,10 +214,7 @@ unsigned int debugPageNumber;
 void uTLB_RefillHandler() {
     // Get the page number
     unsigned int pageNumber;
-    if(EXCSTATE->entry_hi >= UPROCSTACKPG)
-        pageNumber = 31;
-    else
-        pageNumber = GETVPN(EXCSTATE->entry_hi);
+    pageNumber = GETVPN(EXCSTATE->entry_hi);
     a2BreakPageNumber();
     debugPageNumber = pageNumber;
 
@@ -215,7 +225,6 @@ void uTLB_RefillHandler() {
     setENTRYHI(entry->pte_entryHI);
     setENTRYLO(entry->pte_entryLO);
     TLBWR();
-
 
     // Return control to the process by loading the processor state
     resume();

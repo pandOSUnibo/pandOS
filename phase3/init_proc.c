@@ -1,24 +1,32 @@
+#include <umps3/umps/libumps.h>
+
+#include "pandos_const.h"
+
 #include "init_proc.h"
 #include "support.h"
 #include "sys_support.h"
 #include "syscalls.h"
 #include "vm_support.h"
 
-#include "pandos_const.h"
-
-#include <umps3/umps/libumps.h>
-
-
-
 // TODO - Eliminare
 // #define UNOCUPPIED (0x3F<<ASIDSHIFT)
 // Semaphore used to wait the child process termination
+/**
+ * @brief Semaphore to handle process creation and
+ * termination.
+ * 
+ * @remark This semaphore should always be accessed with
+ * SYSCALL(...).
+ */
 semaphore masterSemaphore;
 support_t *globSup; // TODO - da rimuovere
 unsigned int debugPrivatePgTbl; // TODO: da rimuovere
 
 void debugEntry(){}
 
+/**
+ * @brief Initializes support level structures.
+ */
 void initialize() {
     // Semaphore initialization
     for (int i = 0; i < DEVICE_TYPES; i++){

@@ -79,12 +79,14 @@ HIDDEN void termProcessRecursive(pcb_t *p) {
 	processCount--;
 }
 
+void DebugEdo() {}
 
 void passeren(semaphore *semAdd) {
 	(*semAdd)--;
 
 	if (*semAdd < 0) {
 		currentProcess->p_s = *EXCSTATE;
+		DebugEdo();
 		currentProcess->p_time += elapsedTime();
 		insertBlocked((int *) semAdd, currentProcess);
 		currentProcess = NULL;
@@ -116,6 +118,7 @@ void ioWait(int intlNo, int dNum, bool waitForTermRead) {
 	volatile state_t exceptionState = *EXCSTATE;
 	currentProcess->p_s = exceptionState;
 	softBlockCount++;
+	DebugEdo();
 
 	// Select the correct semaphore
 	switch (intlNo) {

@@ -1,8 +1,9 @@
+#include <umps3/umps/arch.h>
 #include <umps3/umps/libumps.h>
 
+#include "init_proc.h"
 #include "support.h"
 #include "sys_support.h"
-#include "init_proc.h"
 
 semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
@@ -14,10 +15,17 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 #define TERMRECVSHIFT 8
 
 #define EOL '\n'
-
+#define RECEIVECHAR 2
 
 // TODO - Linee troppo lunghe!!!
 
+/**
+ * @brief Returns control to the user process after
+ * the execution of a support level service.
+ * 
+ * @param currentSupport Pointer to the support structure
+ * of the current process.
+ */
 void resumeSupport(support_t *currentSupport){
     // TODO - va incrementato anche t9?
     currentSupport->sup_exceptState[GENERALEXCEPT].pc_epc += WORDLEN;
@@ -27,6 +35,12 @@ void A3break(){
 
 }
 
+/**
+ * @brief Handles support level termination of a process.
+ * 
+ * @param currentSupport Pointer to the support structure of the
+ * current process.
+ */
 void terminate(support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     // Check if the process holds a mutex semaphore
@@ -40,30 +54,41 @@ void terminate(support_t *currentSupport) {
          SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     }
 
+    // TODO - perchè non controlliamo se tiene un mutex semaphore di un flash?
     // TODO - check if holding mutual exclusion semaphore
     deallocSupport(currentSupport);
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
 
+/**
+ * @brief Writes a string to the printer used by the current process.
+ * 
+ * @param virtAddr Pointer to the logical address of the first character
+ * of the string.
+ * @param len Lenght of the string.
+ * @param currentSupport Pointer to the support structure of the current process.
+ */
 void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     int retValue = 0;
     // Check if the address and the length are valid
     if(virtAddr >= (char *) VPNBASE && ((virtAddr + len) <= (char *) VPNTOP) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);
+        dtpreg_t *writingRegister = (dtpreg_t *)DEV_REG_ADDR(PRNTINT, devNumber);
+
         for (int i = 0; i < len; i++) {
-            if(*((int *)DEVREG(PRNTINT, devNumber, STATUS)) == READY) {
-                *((char *)DEVREG(PRNTINT, devNumber, DATA0)) = *(virtAddr);
-                virtAddr++;
+            if(writingRegister->status == READY) {
+                writingRegister->data0 = *(virtAddr + i);
                 retValue++;
                 SYSCALL(IOWAIT, PRNTINT, devNumber, 0);
             }
             else{
                 // Return the negative of the device status
-                retValue = -(*((int *)DEVREG(PRNTINT, devNumber, STATUS)));
+                retValue = -(writingRegister->status);
                 break;
             }
         }
+
         currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0 = retValue;
         SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);  
     } 
@@ -72,29 +97,37 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
     }
 }
 
-
+/**
+ * @brief Writes a string to the terminal used by the current process.
+ * 
+ * @param virtAddr Pointer to the logical address of the first character
+ * of the string.
+ * @param len Lenght of the string.
+ * @param currentSupport Pointer to the support structure of the current process.
+ */
 void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     int retValue = 0;
-    unsigned int command;
+
     // Check if the address and the lenght are valid
     if(virtAddr >=  (char *) VPNBASE && ((virtAddr + len) <=  (char *) VPNTOP) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
+        termreg_t *writingRegister = (termreg_t *) DEV_REG_ADDR(TERMINT, devNumber);
+
         for (int i = 0; i < len; i++) {
             int ioStatus = OKCHARTRANS;
-            if((*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)) & TERMSTATUSMASK) == READY && ioStatus == OKCHARTRANS) {
-                command = (*(virtAddr)<<TERMTRANSHIFT) | TRANSMITCHAR;
-                *((unsigned int *)DEVREG(TERMINT, devNumber, TRANCOMMAND)) = command;
-                virtAddr++;
+            if((writingRegister->transm_status & TERMSTATUSMASK) == READY && ioStatus == OKCHARTRANS) {
+                writingRegister->transm_command = (((unsigned int) *(virtAddr + i)) << TERMTRANSHIFT) | TRANSMITCHAR;
                 retValue++;
-                ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, 0);
+                ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, FALSE);
             }
             else{
                 // Return the negative of the device status
-                retValue = -(*((int *)DEVREG(TERMINT, devNumber, TRANSTATUS)));
+                retValue = -(writingRegister->transm_status & TERMSTATUSMASK);
                 break;
             }
         }
+
         currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0 = retValue;
         SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);  
     } 
@@ -103,24 +136,36 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     }
 }
 
-char *debugBuffer;
+unsigned int debugBuffer;
 
 // TODO - è possibile migliorare le condizioni del while?
+/**
+ * @brief Reads a string from the terminal used by the current process.
+ * 
+ * @param buffer Logical address of the first character that will store
+ * the string.
+ * @param currentSupport Pointer to the support structure of the current process.
+ * 
+ * @remark In case of buffer overflow, the process is terminated.
+ */
 void readTerminal(char *buffer, support_t *currentSupport){
     int devNumber = GETDEVNUMBER(currentSupport);
     int retValue = 0;
     int ioStatus;
     char recvd = ' ';
+    termreg_t *readingRegister = (termreg_t *) DEV_REG_ADDR(TERMINT, devNumber);
+
     SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     // Check if the buffer address is valid, if the device is ready and if the last character
     // read is different from the end of line
-    debugBuffer = buffer;
-    while((buffer >=  (char *) VPNBASE ) && (buffer <=  (char *) VPNTOP) && ((*((unsigned int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) == READY) && (recvd != EOL)) {
+    while((buffer >= (char *) VPNBASE) && (buffer <= (char *) USERSTACKTOP) && ((readingRegister->recv_status & TERMSTATUSMASK) == READY) && (recvd != EOL)) {
         A3break();
-        ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, 0);
+        readingRegister->recv_command = RECEIVECHAR;
+        ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, TRUE);
+        debugBuffer = readingRegister->recv_status;
         if(ioStatus == OKCHARTRANS){
             // check ioStatus if correct else break and return
-            recvd = (char)((DEVREG(TERMINT, devNumber, RECVSTATUS) >> TERMRECVSHIFT));
+            recvd = readingRegister->recv_status;
             if(recvd != EOL) {
                 *buffer = recvd;
                 buffer++;
@@ -128,16 +173,18 @@ void readTerminal(char *buffer, support_t *currentSupport){
             }
         }
         else{
-            retValue = -(*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)));
+            retValue = -(readingRegister->recv_status & TERMSTATUSMASK);
             break;
         }
     }
     SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
+    // Check the exit while condition
     // Terminate the process if the buffer is an invalid adress
-    if((*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)) & TERMSTATUSMASK) != READY){
-        retValue = -(*((int *)DEVREG(TERMINT, devNumber, RECVSTATUS)));
+    if((readingRegister->recv_status & TERMSTATUSMASK) != READY) {
+        retValue = -(readingRegister->recv_status & TERMSTATUSMASK);
     }
-    if((buffer >=  (char *) VPNBASE) && (buffer <=  (char *) VPNTOP)){
+
+    if((buffer >= (char *) VPNBASE) && (buffer <=  (char *) USERSTACKTOP)){
         currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0 = retValue;
     }
     else{
@@ -145,13 +192,23 @@ void readTerminal(char *buffer, support_t *currentSupport){
     }
 }
 
-
+/**
+ * @brief Returns the value of the TOD clock.
+ * 
+ * @param currentSupport Pointer to the support structure of the current process.
+ */
 void getTod(support_t *currentSupport) {
     STCK(currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0);
 }
 
 int debugSysId;
 
+/**
+ * @brief Handles support level syscalls.
+ * 
+ * @param sysId Syscall id.
+ * @param currentSupport Pointer to the support structure of the current process.
+ */
 void syscallExceptionHandler(int sysId, support_t *currentSupport) {
 
     debugSysId = sysId;

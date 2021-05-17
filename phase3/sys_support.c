@@ -10,6 +10,8 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 // TODO - passare current support come parametro?
 #define GETDEVNUMBER(support) support->sup_asid-1
 
+#define PRINTCHR 2
+
 #define TERMSTATUSMASK 0x000000FF
 #define TERMTRANSHIFT 8
 #define TERMRECVSHIFT 8
@@ -80,8 +82,9 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
         for (int i = 0; i < len; i++) {
             if(writingRegister->status == READY) {
                 writingRegister->data0 = *(virtAddr + i);
+                writingRegister->command = PRINTCHR;
                 retValue++;
-                SYSCALL(IOWAIT, PRNTINT, devNumber, 0);
+                SYSCALL(IOWAIT, PRNTINT, devNumber, FALSE);
             }
             else{
                 // Return the negative of the device status
@@ -99,6 +102,9 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
 }
 unsigned int debugBuffer;
 
+void DebugTerm(){}
+unsigned int debugStatus = 9;
+
 /**
  * @brief Writes a string to the terminal used by the current process.
  * 
@@ -115,7 +121,7 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     if(virtAddr >=  (char *) VPNBASE && ((virtAddr + len) <= (char *) USERSTACKTOP) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
         termreg_t *writingRegister = (termreg_t *) DEV_REG_ADDR(TERMINT, devNumber);
-        unsigned int ioStatus = OKCHARTRANS;
+        unsigned int ioStatus = OKCHARTRANS; //TODO rimetti unsigned int iostatus = ...;
         for (int i = 0; i < len; i++) {
             if(((writingRegister->transm_status & TERMSTATUSMASK) == READY) && ((ioStatus & TERMSTATUSMASK) == OKCHARTRANS)) {
                 writingRegister->transm_command = (((unsigned int) *(virtAddr + i)) << TERMTRANSHIFT) | TRANSMITCHAR;
@@ -125,6 +131,9 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
             else{
                 // Return the negative of the device status
                 retValue = -(ioStatus & TERMSTATUSMASK);
+                debugStatus = ioStatus;
+                DebugTerm();
+                debugStatus = writingRegister->transm_status;
                 break;
             }
         }

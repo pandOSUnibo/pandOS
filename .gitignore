@@ -61,3 +61,4 @@ build
 umps3Config
 docs/source/*.rst
 docs/doxyxml
+phase3config

@@ -8,7 +8,7 @@
 semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
 // TODO - passare current support come parametro?
-#define GETDEVNUMBER(support) support->sup_asid-1
+#define GETDEVNUMBER(support) (support->sup_asid - 1)
 
 #define PRINTCHR 2
 
@@ -46,18 +46,15 @@ void A3break(){
 void terminate(support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     // Check if the process holds a mutex semaphore
-    if(semMutexDevices[PRINTSEM][devNumber] == 0){
-        SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);
-    }
-    if(semMutexDevices[TERMWRSEM][devNumber] == 0){
-         SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
-    }
-    if(semMutexDevices[TERMRDSEM][devNumber] == 0){
-         SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
+    for(int i = 0; i < DEVICE_TYPES; i++) {
+        if(semMutexDevices[i][devNumber] == 0){
+            SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[i][devNumber], 0, 0);
+        }
     }
 
     // TODO - perchè non controlliamo se tiene un mutex semaphore di un flash?
     // TODO - check if holding mutual exclusion semaphore
+    // TODO: Non dovrebbbe sapere che master semaphore esiste
     SYSCALL(VERHOGEN, (memaddr) &masterSemaphore, 0, 0);
     deallocSupport(currentSupport);
     SYSCALL(TERMPROCESS, 0, 0, 0);
@@ -117,11 +114,11 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     unsigned int retValue = 0;
 
-    // Check if the address and the lenght are valid
-    if(virtAddr >=  (char *) VPNBASE && ((virtAddr + len) <= (char *) USERSTACKTOP) && len <= 128 && len >= 0) {
+    // Check if the address and the length are valid
+    if(virtAddr >= (char *) VPNBASE && ((virtAddr + len) <= (char *) USERSTACKTOP) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
         termreg_t *writingRegister = (termreg_t *) DEV_REG_ADDR(TERMINT, devNumber);
-        unsigned int ioStatus = OKCHARTRANS; //TODO rimetti unsigned int iostatus = ...;
+        unsigned int ioStatus = OKCHARTRANS;
         for (int i = 0; i < len; i++) {
             if(((writingRegister->transm_status & TERMSTATUSMASK) == READY) && ((ioStatus & TERMSTATUSMASK) == OKCHARTRANS)) {
                 writingRegister->transm_command = (((unsigned int) *(virtAddr + i)) << TERMTRANSHIFT) | TRANSMITCHAR;
@@ -170,7 +167,7 @@ void readTerminal(char *buffer, support_t *currentSupport){
     while((buffer >= (char *) VPNBASE) && (buffer <= (char *) USERSTACKTOP) && ((readingRegister->recv_status & TERMSTATUSMASK) == READY) && (recvd != EOL)) {
         readingRegister->recv_command = RECEIVECHAR;
         ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, TRUE);
-        if((ioStatus & TERMSTATUSMASK) == OKCHARTRANS){
+        if((ioStatus & TERMSTATUSMASK) == OKCHARTRANS) {
             // check ioStatus if correct else break and return
             recvd = (ioStatus >> TERMTRANSHIFT);
             if(recvd != EOL) {
@@ -179,17 +176,17 @@ void readTerminal(char *buffer, support_t *currentSupport){
                 retValue++;
             }
         }
-        else{
-            retValue = -(ioStatus & TERMSTATUSMASK);
+        else {
             break;
         }
     }
-    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     // Check the exit while condition
     // Terminate the process if the buffer is an invalid adress
-    if((readingRegister->recv_status & TERMSTATUSMASK) != READY) {
-        retValue = -(readingRegister->recv_status & TERMSTATUSMASK);
+    if((readingRegister->recv_status & TERMSTATUSMASK) != READY || (ioStatus & TERMSTATUSMASK) != OKCHARTRANS) {
+        retValue = -(ioStatus & TERMSTATUSMASK);
     }
+
+    SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
     A3break();
 
     if((buffer >= (char *) VPNBASE) && (buffer <=  (char *) USERSTACKTOP)){

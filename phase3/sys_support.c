@@ -56,6 +56,7 @@ void terminate(support_t *currentSupport) {
 
     // TODO - perchè non controlliamo se tiene un mutex semaphore di un flash?
     // TODO - check if holding mutual exclusion semaphore
+    SYSCALL(VERHOGEN, (memaddr) &masterSemaphore, 0, 0);
     deallocSupport(currentSupport);
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
@@ -96,6 +97,7 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
         terminate(currentSupport);
     }
 }
+unsigned int debugBuffer;
 
 /**
  * @brief Writes a string to the terminal used by the current process.
@@ -107,23 +109,22 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
  */
 void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
-    int retValue = 0;
+    unsigned int retValue = 0;
 
     // Check if the address and the lenght are valid
-    if(virtAddr >=  (char *) VPNBASE && ((virtAddr + len) <=  (char *) VPNTOP) && len <= 128 && len >= 0) {
+    if(virtAddr >=  (char *) VPNBASE && ((virtAddr + len) <= (char *) USERSTACKTOP) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
         termreg_t *writingRegister = (termreg_t *) DEV_REG_ADDR(TERMINT, devNumber);
-
+        unsigned int ioStatus = OKCHARTRANS;
         for (int i = 0; i < len; i++) {
-            int ioStatus = OKCHARTRANS;
-            if((writingRegister->transm_status & TERMSTATUSMASK) == READY && ioStatus == OKCHARTRANS) {
+            if(((writingRegister->transm_status & TERMSTATUSMASK) == READY) && ((ioStatus & TERMSTATUSMASK) == OKCHARTRANS)) {
                 writingRegister->transm_command = (((unsigned int) *(virtAddr + i)) << TERMTRANSHIFT) | TRANSMITCHAR;
                 retValue++;
                 ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, FALSE);
             }
             else{
                 // Return the negative of the device status
-                retValue = -(writingRegister->transm_status & TERMSTATUSMASK);
+                retValue = -(ioStatus & TERMSTATUSMASK);
                 break;
             }
         }
@@ -136,7 +137,6 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     }
 }
 
-unsigned int debugBuffer;
 
 // TODO - è possibile migliorare le condizioni del while?
 /**
@@ -159,13 +159,11 @@ void readTerminal(char *buffer, support_t *currentSupport){
     // Check if the buffer address is valid, if the device is ready and if the last character
     // read is different from the end of line
     while((buffer >= (char *) VPNBASE) && (buffer <= (char *) USERSTACKTOP) && ((readingRegister->recv_status & TERMSTATUSMASK) == READY) && (recvd != EOL)) {
-        A3break();
         readingRegister->recv_command = RECEIVECHAR;
         ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, TRUE);
-        debugBuffer = readingRegister->recv_status;
-        if(ioStatus == OKCHARTRANS){
+        if((ioStatus & TERMSTATUSMASK) == OKCHARTRANS){
             // check ioStatus if correct else break and return
-            recvd = readingRegister->recv_status;
+            recvd = (ioStatus >> TERMTRANSHIFT);
             if(recvd != EOL) {
                 *buffer = recvd;
                 buffer++;
@@ -173,7 +171,7 @@ void readTerminal(char *buffer, support_t *currentSupport){
             }
         }
         else{
-            retValue = -(readingRegister->recv_status & TERMSTATUSMASK);
+            retValue = -(ioStatus & TERMSTATUSMASK);
             break;
         }
     }
@@ -183,6 +181,7 @@ void readTerminal(char *buffer, support_t *currentSupport){
     if((readingRegister->recv_status & TERMSTATUSMASK) != READY) {
         retValue = -(readingRegister->recv_status & TERMSTATUSMASK);
     }
+    A3break();
 
     if((buffer >= (char *) VPNBASE) && (buffer <=  (char *) USERSTACKTOP)){
         currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0 = retValue;

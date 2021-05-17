@@ -12,9 +12,14 @@
 #ifndef INITPROC_H
 #define INITPROC_H
 
+#include "pandos_types.h"
+
 #define VPNBASE 0x80000000
 #define VPNTOP  0x8001EFFF
 #define UPROCSTACKPG 0xBFFFF000
+
+
+extern semaphore masterSemaphore;
 
 /**
  * @brief First process that will be loaded by pandOS.

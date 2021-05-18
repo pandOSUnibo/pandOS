@@ -53,7 +53,6 @@ HIDDEN void passUpOrDie(int index) {
 		// Pass up the exception to the Support Level
 		supportStructure->sup_exceptState[index] = *EXCSTATE;
 		context_t *context = &(supportStructure->sup_exceptContext[index]);
-		debugPODStop();
 		LDCXT(context->c_stackPtr, context->c_status, context->c_pc);
 	}
 }

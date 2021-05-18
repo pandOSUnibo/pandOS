@@ -2,9 +2,8 @@
 #include <umps3/umps/libumps.h>
 
 #include "exceptions.h"
-#include "initial.h"
-
 #include "init_proc.h"
+#include "initial.h"
 #include "sys_support.h"
 #include "vm_support.h"
 
@@ -23,22 +22,25 @@
 #define GETVPN(T) ((UPROCSTACKPG <= T && T <= USERSTACKTOP) ? STACKPG : ((T - VPNBASE) >> VPNSHIFT))
 #define SETPFN(TO, N) TO = (TO & ~PFNMASK) | ((N << PFNSHIFT) + POOLSTART)
 
-
 // TODO: Usarlo anche per le fasi precedenti?
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
 #define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON)
 
 #define FLASHADDRSHIFT 8
 
+#define HEADERPAGE 0
+#define HEADERTEXTSIZE 0x0014
+#define PAGESHIFT 12
+#define FRAMETOADDRESS(T) ((T << PAGESHIFT) + POOLSTART)
+
+#define DEBUGDISABLEDIRTY FALSE
+
 swap_t swapTable[FRAMENUMBER];
 semaphore semSwapPool;
 
-
-int AReplacementFound = 1000; //TODO: Rimuovere 
+int dataPages[UPROCNUMBER];
 
 // TODO: Guardare ottimizzazioni
-
-// TODO: Fare un typedef per il tipo register (=unsigned int)?
 
 /**
  * @brief Finds the matching entry for a page number.
@@ -58,9 +60,10 @@ void resumeVM(support_t *currentSupport){
 }
 
 /**
- * @brief Finds the index of the 
+ * @brief Finds the index of a frame that will contain the
+ * new page.
  * 
- * @return int 
+ * @return The index of a frame that will contain the new page.
  */
 int findReplacement() {
     static int currentReplacementIndex = 0;
@@ -74,6 +77,11 @@ int findReplacement() {
     return currentReplacementIndex = (currentReplacementIndex + i) % FRAMENUMBER;
 }
 
+/**
+ * @brief Updates the TLB.
+ * 
+ * @param updatedEntry Pointer to the entry with the new TLB values.
+ */
 void updateTLB(pteEntry_t *updatedEntry){
 
     // Check if the updated TLB entry is cached in the TLB
@@ -87,11 +95,18 @@ void updateTLB(pteEntry_t *updatedEntry){
     }
 }
 
-void A2break(){
-
-}
-void ATLBbreak(){}
-
+/**
+ * @brief Executes a command (read or write) for a flash
+ * device.
+ * 
+ * @param deviceNumber Index of the device in [0, DEVICE_INSTANCES).
+ * @param primaryPage Index of the page in primary memory.
+ * @param command Command to be issued.
+ * @param currentSupport Pointer to the support structure of the current
+ * process.
+ * 
+ * @remark DEVICE_INSTANCES is defined in pandos_const.h.
+ */
 void executeFlashAction(int deviceNumber, unsigned int primaryPage, unsigned int command, support_t *currentSupport) {
     // Obtain the mutex on the device
     memaddr primaryAddress = (primaryPage << PFNSHIFT) + POOLSTART;
@@ -120,19 +135,42 @@ void executeFlashAction(int deviceNumber, unsigned int primaryPage, unsigned int
     }
 }
 
-void readFrameFromFlash(int deviceNumber, unsigned int flashBlock, unsigned int primaryBlock, support_t *currentSupport) {
+/**
+ * @brief Reads a frame from a flash device and stores it in
+ * primary memory.
+ * 
+ * @param deviceNumber Index of the device in [0, DEVICE_INSTANCES).
+ * @param flashBlock Index of the block in the flash device.
+ * @param primaryPage Index of the page in primary memory.
+ * @param currentSupport Pointer to the support structure of the current
+ * process.
+ * 
+ * @remark DEVICE_INSTANCES is defined in pandos_const.h.
+ */
+void readFrameFromFlash(int deviceNumber, unsigned int flashBlock, unsigned int primaryPage, support_t *currentSupport) {
     unsigned int command = FLASHREAD | (flashBlock << FLASHADDRSHIFT);
-    executeFlashAction(deviceNumber, primaryBlock, command, currentSupport);
+    executeFlashAction(deviceNumber, primaryPage, command, currentSupport);
 }
 
-void writeFrameToFlash(int deviceNumber, unsigned int flashBlock, unsigned int primaryBlock, support_t *currentSupport) {
+/**
+ * @brief Reads a frame from primary memory and stores it in
+ * a flash device.
+ * 
+ * @param deviceNumber Index of the device in [0, DEVICE_INSTANCES).
+ * @param flashBlock Index of the block in the flash device.
+ * @param primaryPage Index of the page in primary memory.
+ * @param currentSupport Pointer to the support structure of the current
+ * process.
+ * 
+ * @remark DEVICE_INSTANCES is defined in pandos_const.h.
+ */
+void writeFrameToFlash(int deviceNumber, unsigned int flashBlock, unsigned int primaryPage, support_t *currentSupport) {
     unsigned int command = FLASHWRITE | (flashBlock << FLASHADDRSHIFT);
-    executeFlashAction(deviceNumber, primaryBlock, command, currentSupport);
+    executeFlashAction(deviceNumber, primaryPage, command, currentSupport);
 }
 
-void aBreakPageNumber(){}
 
-void a2BreakPageNumber(){}
+unsigned int debugTextSize;
 
 void uTLB_PageFaultHandler() {
     // Get Current Process's Support Structure
@@ -150,10 +188,8 @@ void uTLB_PageFaultHandler() {
     int currentASID = currentSupport->sup_asid;
     // TODO - trovare una gestione più carina per la pagina dello stack.
     int missingPageNumber = GETVPN(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
-    
     // Pick a frame replacement by calling page replacement algorithm
     int selectedFrame = findReplacement();
-    AReplacementFound = selectedFrame;
     // Determine if frame i is occupied
     if (swapTable[selectedFrame].sw_pte->pte_entryLO & VALIDON) {
         // Occupied
@@ -172,55 +208,71 @@ void uTLB_PageFaultHandler() {
         // Update the TLB, if needed
         updateTLB(occupiedPageTable);
 
-        // TODO - perchè in mutua esclusione? 
-        // Update process x's backing store
-        writeFrameToFlash(occupiedASID-1, occupiedPageNumber, selectedFrame, currentSupport);
-
         // Re-enable interrupts
         ENABLEINTERRUPTS;
+
+        // Update process x's backing store
+        writeFrameToFlash(occupiedASID-1, occupiedPageNumber, selectedFrame, currentSupport);
     }
 
     // Read the contents from the flash device
     readFrameFromFlash(currentASID - 1, missingPageNumber, selectedFrame, currentSupport);
-
     // Update the swap pool table by setting the new ASID, page number and pointer to the process's page table entry
     swapTable[selectedFrame].sw_asid = currentASID;
     swapTable[selectedFrame].sw_pageNo = missingPageNumber;
     swapTable[selectedFrame].sw_pte = &(currentSupport->sup_privatePgTbl[missingPageNumber]);
 
+    // If the page contains header information, use it to identify
+    // the first data page
+    // TODO: Debuggare
+    if (missingPageNumber != HEADERPAGE || dataPages[currentASID - 1] == UNKNOWNDATAPAGE) {
+        //dataPages[missingPageNumber]
+        memaddr headerAddress = FRAMETOADDRESS(selectedFrame);
+        memaddr textSize = *((memaddr *)(headerAddress + HEADERTEXTSIZE));
+        debugTextSize = textSize;
+        dataPages[currentASID - 1] = textSize >> PAGESHIFT;
+    }
+
     DISABLEINTERRUPTS;
     
     // Update the process' page table
-    currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON; 
+    currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON;
     SETPFN(currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO, selectedFrame);
+
+    // If the page is a text page, mark it as not dirty
+    // TODO: Debuggare
+    if (DEBUGDISABLEDIRTY) {
+    }
+    else {
+        if (dataPages[currentASID - 1] == UNKNOWNDATAPAGE || missingPageNumber >= dataPages[currentASID - 1]) {
+            currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= DIRTYON;
+        }
+        else {
+            currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO &= ~DIRTYON;
+        }
+    }
 
     // Update the TLB
     updateTLB(&(currentSupport->sup_privatePgTbl[missingPageNumber]));
-    ATLBbreak();
 
     ENABLEINTERRUPTS;
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
-    A2break();
+
     // Return control to the process by loading the processor state
     // Qui fa un loop, mettere il bp su A2break e notare come
     // vengano sempre ripetute queste due funzioni ()
-    //resume();
-    resumeVM(currentSupport); // TODO - possibile soluzione
+    resumeVM(currentSupport);
 }
 
-unsigned int debugEntryLo;
-unsigned int debugPageNumber;
-
+/**
+ * @brief Handles TLB Refill exceptions.
+ */
 void uTLB_RefillHandler() {
     // Get the page number
     unsigned int pageNumber;
     pageNumber = GETVPN(EXCSTATE->entry_hi);
-    a2BreakPageNumber();
-    debugPageNumber = pageNumber;
 
     pteEntry_t *entry = findEntry(pageNumber);
-
-    debugEntryLo = entry->pte_entryLO;
 
     setENTRYHI(entry->pte_entryHI);
     setENTRYLO(entry->pte_entryLO);

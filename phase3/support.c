@@ -1,4 +1,5 @@
 #include "support.h"
+#include "vm_support.h"
 
 /**
  * @brief Contains the support level structures.
@@ -14,7 +15,7 @@ HIDDEN support_t *freeSupport[UPROCNUMBER+1];
 /**
  * @brief Top of freeSupport.
  */
-HIDDEN support_t **stackSup;
+HIDDEN int stackSup;
 
 /**
  * @brief Deallocates a support structure.
@@ -23,8 +24,8 @@ HIDDEN support_t **stackSup;
  * deallocated.
  */
 void deallocSupport(support_t *support){
-    *stackSup = support;
-    stackSup = (stackSup + sizeof(support_t*));
+    freeSupport[stackSup] = support;
+    stackSup++;
 }
 
 /**
@@ -34,17 +35,18 @@ void deallocSupport(support_t *support){
  */
 support_t* allocSupport() {
     support_t *sup = NULL;
-    if (stackSup != freeSupport){
-        stackSup = (stackSup - sizeof(support_t*));
-        sup = *stackSup;
+    if (stackSup != 0){
+        stackSup--;
+        sup = freeSupport[stackSup];
     }
     return sup;
 }
 
 void initSupport() {
-    stackSup = freeSupport;
-    int i ;
+    stackSup = 0;
+    int i;
     for (i = 0; i < UPROCNUMBER; i++){
         deallocSupport(&support_table[i]);
+        dataPages[i] = UNKNOWNDATAPAGE;
     }
 }

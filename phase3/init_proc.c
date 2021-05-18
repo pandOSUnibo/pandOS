@@ -19,8 +19,6 @@
  * SYSCALL(...).
  */
 semaphore masterSemaphore;
-support_t *globSup; // TODO - da rimuovere
-unsigned int debugPrivatePgTbl; // TODO: da rimuovere
 
 void debugEntry(){}
 
@@ -59,8 +57,8 @@ void test(void) {
     support_t *sup;
     for (int id = 1; id <= UPROCNUMBER; id++) {
         p.entry_hi = (id << ASIDSHIFT);
+
         sup = allocSupport();
-        globSup = sup;
         // Initialize Support Structure for the i-th U-proc
         sup->sup_asid = id;
         sup->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) &uTLB_PageFaultHandler; // TODO: metti uTLB_Handler
@@ -73,14 +71,10 @@ void test(void) {
         int row;
         for(row = 0; row<USERPGTBLSIZE-1; row++) {
             sup->sup_privatePgTbl[row].pte_entryHI = VPNBASE + (row << VPNSHIFT) + (id << ASIDSHIFT);
-            //debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryHI;
             sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON;
-            debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryLO;
         }
         
-        debugEntry();
         sup->sup_privatePgTbl[row].pte_entryHI = UPROCSTACKPG + (id << ASIDSHIFT);
-        debugPrivatePgTbl = sup->sup_privatePgTbl[row].pte_entryHI;
         sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON; // TODO perchè c'era DIRTYON | GLOBALON? Anche su riga 70
         // TODO: Call SYS1 on U-proc
         SYSCALL(CREATEPROCESS, (memaddr) &p, (memaddr)sup, 0);

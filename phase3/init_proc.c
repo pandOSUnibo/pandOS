@@ -22,30 +22,10 @@ semaphore masterSemaphore;
 
 void debugEntry(){}
 
-/**
- * @brief Initializes support level structures.
- */
-void initialize() {
-    // Semaphore initialization
-    for (int i = 0; i < DEVICE_TYPES; i++){
-        for (int j = 0; j < DEVICE_INSTANCES; j++){
-            semMutexDevices[i][j] = 1;
-        }       
-    }
-    semSwapPool = 1;
-    masterSemaphore = 0;
-    initSupport();
-
-    // Swap table initialization
-    for (int i = 0; i < FRAMENUMBER; i++){
-        swapTable[i].sw_asid = NOPROC;
-    }
-    
-}
 
 
 void test(void) {
-    initialize();
+    initSwapStructs();
 
     // Initialize processor state equal for all U-procs
     state_t p;
@@ -61,7 +41,7 @@ void test(void) {
         sup = allocSupport();
         // Initialize Support Structure for the i-th U-proc
         sup->sup_asid = id;
-        sup->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) &uTLB_PageFaultHandler; // TODO: metti uTLB_Handler
+        sup->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) &uTLB_PageFaultHandler;
         sup->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) &generalExceptionHandler; 
         sup->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPON | IMON | TEBITON;
         sup->sup_exceptContext[GENERALEXCEPT].c_status = IEPON | IMON | TEBITON; // GeneralExceptionHandler
@@ -75,7 +55,7 @@ void test(void) {
         }
         
         sup->sup_privatePgTbl[row].pte_entryHI = UPROCSTACKPG + (id << ASIDSHIFT);
-        sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON; // TODO perchè c'era DIRTYON | GLOBALON? Anche su riga 70
+        sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON;
         // TODO: Call SYS1 on U-proc
         SYSCALL(CREATEPROCESS, (memaddr) &p, (memaddr)sup, 0);
 

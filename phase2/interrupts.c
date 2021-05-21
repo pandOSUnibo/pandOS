@@ -79,6 +79,7 @@ HIDDEN void unblockLoad(int deviceType, int instanceID,
 }
 
 int debugDevType; 
+int debugInstanceID;
 
 /**
  * @brief Handles non-timer interrupts.
@@ -89,11 +90,12 @@ int debugDevType;
  */
 HIDDEN void nonTimerInterrupt(int deviceType) {
 	debugDevType = deviceType;
-	unsigned int instanceMap = DEVREGAREA->interrupt_dev[deviceType];
+	volatile unsigned int instanceMap = DEVREGAREA->interrupt_dev[deviceType];
 
 	// Get the device instance with highest priority
 	instanceMap &= -instanceMap;
 	int instanceID = mapToInt(instanceMap);
+	debugInstanceID = instanceID;
 	volatile unsigned int statusCode;
 
 	if (deviceType == 4) {
@@ -162,7 +164,7 @@ HIDDEN void intervalTimerInterrupt() {
 }
 
 void interruptsHandler(state_t *exceptionState) {
-	unsigned int ip = (exceptionState->cause & GETIP);
+	volatile unsigned int ip = (exceptionState->cause & GETIP);
 
 	// Keep the least significant bit
 	ip &= -ip;

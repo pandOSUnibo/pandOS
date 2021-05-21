@@ -112,6 +112,7 @@ pcb_t *verhogen(semaphore *semAdd) {
 	return unblockedProcess;
 }
 
+int debugSem;
 
 void ioWait(int intlNo, int dNum, bool waitForTermRead) {
 	// Save the process state
@@ -119,7 +120,7 @@ void ioWait(int intlNo, int dNum, bool waitForTermRead) {
 	currentProcess->p_s = exceptionState;
 	softBlockCount++;
 	DebugEdo();
-
+	debugSem = dNum;
 	// Select the correct semaphore
 	switch (intlNo) {
 	case DISKINT:

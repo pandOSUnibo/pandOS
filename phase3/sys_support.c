@@ -4,6 +4,7 @@
 #include "init_proc.h"
 #include "support.h"
 #include "sys_support.h"
+#include "vm_support.h"
 
 semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
@@ -17,6 +18,9 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
 // Check if the given address is valid
 #define CHECKADDR(START, END)    (CHECKADDRTXT(START, END) || CHECKADDRSTCK(START, END))
+
+#define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
+#define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON | IMON)
 
 
 #define PRINTCHR 2
@@ -61,11 +65,16 @@ void terminate(support_t *currentSupport) {
         }
     }
 
-    // TODO: Dichiarare tutte le pagine come non utilizzato
+    // Mark as unused all the pages
+    for (int i = 0; i < USERPGTBLSIZE; i++){
+        if(currentSupport->sup_privatePgTbl[i].pte_entryLO & VALIDON){
+            DISABLEINTERRUPTS;
+            currentSupport->sup_privatePgTbl[i].pte_entryLO &= ~VALIDON;
+            updateTLB(&currentSupport->sup_privatePgTbl[i]);
+            ENABLEINTERRUPTS;
+        }
+    }
 
-    // TODO - perchè non controlliamo se tiene un mutex semaphore di un flash?
-    // TODO - check if holding mutual exclusion semaphore
-    // TODO: Non dovrebbbe sapere che master semaphore esiste
     SYSCALL(VERHOGEN, (memaddr) &masterSemaphore, 0, 0);
     deallocSupport(currentSupport);
     SYSCALL(TERMPROCESS, 0, 0, 0);
@@ -83,7 +92,12 @@ unsigned int debugPrinter;
  */
 void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
+    // Debug
+    if (devNumber < 0 || devNumber > 7) {
+        PANIC();
+    }
     int retValue = 0;
+    debugPrinter = devNumber;
     // Check if the address and the length are valid
     if(CHECKADDR(virtAddr, virtAddr+len) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);
@@ -91,9 +105,11 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
 
         for (int i = 0; i < len; i++) {
             if(writingRegister->status == READY) {
+                DISABLEINTERRUPTS;
                 writingRegister->data0 = ((unsigned int) *(virtAddr + i));
                 writingRegister->command = PRINTCHR;
                 SYSCALL(IOWAIT, PRNTINT, devNumber, FALSE);
+                ENABLEINTERRUPTS;
                 retValue++;
             }
             else{
@@ -110,10 +126,18 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
         terminate(currentSupport);
     }
 }
-unsigned int debugBuffer;
+termreg_t* debugBuffer;
+
+memaddr debugWriteReg = 0;
 
 void DebugTerm(){}
 unsigned int debugStatus = 9;
+
+void debugIoWait() {
+
+}
+
+char *debugVirtAddr = NULL;
 
 /**
  * @brief Writes a string to the terminal used by the current process.
@@ -126,24 +150,30 @@ unsigned int debugStatus = 9;
 void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     unsigned int retValue = 0;
-
+    // Debug
+    if (devNumber < 0 || devNumber > 7) {
+        PANIC();
+    }
+    debugVirtAddr = virtAddr;
     // Check if the address and the length are valid
     if(CHECKADDR(virtAddr, virtAddr+len) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
-        termreg_t *writingRegister = (termreg_t *) DEV_REG_ADDR(TERMINT, devNumber);
+        volatile termreg_t *writingRegister = (termreg_t *) DEV_REG_ADDR(TERMINT, devNumber);
         unsigned int ioStatus = OKCHARTRANS;
         for (int i = 0; i < len; i++) {
             if(((writingRegister->transm_status & TERMSTATUSMASK) == READY) && ((ioStatus & TERMSTATUSMASK) == OKCHARTRANS)) {
+                A3break();
+                DISABLEINTERRUPTS;  
                 writingRegister->transm_command = (((unsigned int) *(virtAddr + i)) << TERMTRANSHIFT) | TRANSMITCHAR;
-                retValue++;
+                debugIoWait();
                 ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, FALSE);
+                debugIoWait();
+                ENABLEINTERRUPTS;
+                retValue++;
             }
             else{
                 // Return the negative of the device status
-                retValue = -(ioStatus & TERMSTATUSMASK);
-                debugStatus = ioStatus;
-                DebugTerm();
-                debugStatus = writingRegister->transm_status;
+                retValue = -(ioStatus);
                 break;
             }
         }
@@ -178,8 +208,10 @@ void readTerminal(char *buffer, support_t *currentSupport){
     // Check if the buffer address is valid, if the device is ready and if the last character
     // read is different from the end of line
     while(CHECKADDR(buffer, buffer) && ((readingRegister->recv_status & TERMSTATUSMASK) == READY) && (recvd != EOL)) {
+        DISABLEINTERRUPTS;
         readingRegister->recv_command = RECEIVECHAR;
         ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, TRUE);
+        ENABLEINTERRUPTS;
         if((ioStatus & TERMSTATUSMASK) == OKCHARTRANS) {
             // check ioStatus if correct else break and return
             recvd = (ioStatus >> TERMTRANSHIFT);
@@ -196,11 +228,10 @@ void readTerminal(char *buffer, support_t *currentSupport){
     // Check the exit while condition
     // Terminate the process if the buffer is an invalid adress
     if((readingRegister->recv_status & TERMSTATUSMASK) != READY || (ioStatus & TERMSTATUSMASK) != OKCHARTRANS) {
-        retValue = -(ioStatus & TERMSTATUSMASK);
+        retValue = -(ioStatus);
     }
 
     SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
-    A3break();
 
     if(CHECKADDR(buffer, buffer)){
         currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0 = retValue;

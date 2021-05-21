@@ -17,21 +17,9 @@
 
 #include "support.h"
 
-#define FRAMENUMBER  (2 * UPROCMAX)
+#define FRAMENUMBER (2 * UPROCNUMBER)
 #define UNKNOWNDATAPAGE -1
 
-/**
- * @brief Contains information regarding the swap pool.
- */
-extern swap_t swapTable[FRAMENUMBER];
-
-/**
- * @brief Semaphore used to regulate access to the swap pool.
- * 
- * @remark This semaphore should always be accessed with
- * SYSCALL(...).
- */
-extern semaphore semSwapPool;
 
 /**
  * @brief Contains the index of the first .data page for each
@@ -39,6 +27,12 @@ extern semaphore semSwapPool;
  * is available.
  */
 extern int dataPages[UPROCNUMBER];
+
+void updateTLB(pteEntry_t *updatedEntry);
+/**
+ * @brief Initializes support level structures.
+ */
+void initSwapStructs();
 
 /**
  * @brief Handles TLB Page Fault exceptions.

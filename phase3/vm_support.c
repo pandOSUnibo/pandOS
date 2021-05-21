@@ -24,7 +24,7 @@
 
 // TODO: Usarlo anche per le fasi precedenti?
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
-#define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON)
+#define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON | IMON)
 
 #define FLASHADDRSHIFT 8
 
@@ -33,12 +33,35 @@
 #define PAGESHIFT 12
 #define FRAMETOADDRESS(T) ((T << PAGESHIFT) + POOLSTART)
 
-#define DEBUGDISABLEDIRTY FALSE
+HIDDEN swap_t swapTable[FRAMENUMBER];
 
-swap_t swapTable[FRAMENUMBER];
-semaphore semSwapPool;
+/**
+ * @brief Semaphore used to regulate access to the swap pool.
+ * 
+ * @remark This semaphore should always be accessed with
+ * SYSCALL(...).
+ */
+HIDDEN semaphore semSwapPool;
 
 int dataPages[UPROCNUMBER];
+
+
+void initSwapStructs(){
+    // Semaphore initialization
+    for (int i = 0; i < DEVICE_TYPES; i++){
+        for (int j = 0; j < DEVICE_INSTANCES; j++){
+            semMutexDevices[i][j] = 1;
+        }       
+    }
+    semSwapPool = 1;
+    masterSemaphore = 0;
+    initSupport();
+
+    // Swap table initialization
+    for (int i = 0; i < FRAMENUMBER; i++){
+        swapTable[i].sw_asid = NOPROC;
+    }
+}
 
 // TODO: Guardare ottimizzazioni
 
@@ -59,6 +82,8 @@ void resumeVM(support_t *currentSupport){
     LDST((state_t *) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
 
+
+
 /**
  * @brief Finds the index of a frame that will contain the
  * new page.
@@ -69,11 +94,12 @@ int findReplacement() {
     static int currentReplacementIndex = 0;
 
     int i = 0;
-    while((swapTable[(currentReplacementIndex + i) % FRAMENUMBER].sw_pte->pte_entryLO & VALIDON) && i < FRAMENUMBER)
+    while((swapTable[(currentReplacementIndex + i) % FRAMENUMBER].sw_pte->pte_entryLO & VALIDON) && (i < FRAMENUMBER))
         ++i;
 
+    // If all frames are occupied, pick currentReplacementIndex + 1
     i = (i == FRAMENUMBER) ? 1 : i;
-
+    
     return currentReplacementIndex = (currentReplacementIndex + i) % FRAMENUMBER;
 }
 
@@ -108,8 +134,13 @@ void updateTLB(pteEntry_t *updatedEntry){
  * @remark DEVICE_INSTANCES is defined in pandos_const.h.
  */
 void executeFlashAction(int deviceNumber, unsigned int primaryPage, unsigned int command, support_t *currentSupport) {
+    // Debug
+    if (deviceNumber < 0 || deviceNumber > 7) {
+        PANIC();
+    }
+
     // Obtain the mutex on the device
-    memaddr primaryAddress = (primaryPage << PFNSHIFT) + POOLSTART;
+    memaddr primaryAddress = (primaryPage << PFNSHIFT) + POOLSTART ;
     SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
     dtpreg_t *flashRegister = (dtpreg_t *) DEV_REG_ADDR(FLASHINT, deviceNumber);
     flashRegister->data0 = primaryAddress;
@@ -170,7 +201,12 @@ void writeFrameToFlash(int deviceNumber, unsigned int flashBlock, unsigned int p
 }
 
 
-unsigned int debugTextSize;
+unsigned int debugOcc;
+unsigned int currAsid;
+unsigned int inPage;
+unsigned int outPage;
+swap_t table;
+unsigned int debugPage;
 
 void uTLB_PageFaultHandler() {
     // Get Current Process's Support Structure
@@ -190,6 +226,13 @@ void uTLB_PageFaultHandler() {
     int missingPageNumber = GETVPN(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
     // Pick a frame replacement by calling page replacement algorithm
     int selectedFrame = findReplacement();
+
+    // TODO - debug
+    currAsid = currentASID;
+    outPage = selectedFrame;
+    inPage = missingPageNumber;
+    table = swapTable[0];
+
     // Determine if frame i is occupied
     if (swapTable[selectedFrame].sw_pte->pte_entryLO & VALIDON) {
         // Occupied
@@ -204,15 +247,19 @@ void uTLB_PageFaultHandler() {
         // Mark the occupied entry as not valid
         pteEntry_t *occupiedPageTable = swapTable[selectedFrame].sw_pte;
         occupiedPageTable->pte_entryLO &= ~VALIDON;
-
+        debugPage = occupiedPageTable->pte_entryLO;
         // Update the TLB, if needed
         updateTLB(occupiedPageTable);
 
         // Re-enable interrupts
         ENABLEINTERRUPTS;
-
         // Update process x's backing store
-        writeFrameToFlash(occupiedASID-1, occupiedPageNumber, selectedFrame, currentSupport);
+        // TODO aggiungere controllo sul dirty bit
+        if(occupiedPageTable->pte_entryLO & DIRTYON){
+            debugOcc = swapTable[selectedFrame].sw_pageNo;
+            writeFrameToFlash(occupiedASID-1, occupiedPageNumber, selectedFrame, currentSupport);
+        }
+
     }
 
     // Read the contents from the flash device
@@ -224,12 +271,9 @@ void uTLB_PageFaultHandler() {
 
     // If the page contains header information, use it to identify
     // the first data page
-    // TODO: Debuggare
     if (missingPageNumber != HEADERPAGE || dataPages[currentASID - 1] == UNKNOWNDATAPAGE) {
-        //dataPages[missingPageNumber]
         memaddr headerAddress = FRAMETOADDRESS(selectedFrame);
         memaddr textSize = *((memaddr *)(headerAddress + HEADERTEXTSIZE));
-        debugTextSize = textSize;
         dataPages[currentASID - 1] = textSize >> PAGESHIFT;
     }
 
@@ -240,22 +284,15 @@ void uTLB_PageFaultHandler() {
     SETPFN(currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO, selectedFrame);
 
     // If the page is a text page, mark it as not dirty
-    // TODO: Debuggare
-    if (DEBUGDISABLEDIRTY) {
-    }
-    else {
-        if (dataPages[currentASID - 1] == UNKNOWNDATAPAGE || missingPageNumber >= dataPages[currentASID - 1]) {
-            currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= DIRTYON;
-        }
-        else {
-            currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO &= ~DIRTYON;
-        }
+    if (dataPages[currentASID - 1] != UNKNOWNDATAPAGE && missingPageNumber < dataPages[currentASID - 1]) {
+        currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO &= ~DIRTYON;
     }
 
     // Update the TLB
     updateTLB(&(currentSupport->sup_privatePgTbl[missingPageNumber]));
 
     ENABLEINTERRUPTS;
+    
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
 
     // Return control to the process by loading the processor state
@@ -269,7 +306,7 @@ void uTLB_PageFaultHandler() {
  */
 void uTLB_RefillHandler() {
     // Get the page number
-    unsigned int pageNumber;
+    volatile unsigned int pageNumber;
     pageNumber = GETVPN(EXCSTATE->entry_hi);
 
     pteEntry_t *entry = findEntry(pageNumber);

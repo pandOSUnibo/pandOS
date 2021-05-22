@@ -86,14 +86,14 @@ should be a comment that summarizes what your function is doing, as in:
 
 A couple notes:
 
-- All descriptions begin with an uppercase letter (except if the first word
+* All descriptions begin with an uppercase letter (except if the first word
   is a function name or other terms with specific casing);
-- Function descriptions use the third person: use "Computes"
+* Function descriptions use the third person: use "Computes"
   instead of "Compute";
-- There is no article at the beginning of parameter descriptions: use "Number to be squared"
+* There is no article at the beginning of parameter descriptions: use "Number to be squared"
   instead of "The number to be squared" (this rule does not apply to @return);
-- The return type is not specified;
-- Acronyms are all caps: use "PCB" instead of "pcb".
+* The return type is not specified;
+* Acronyms are all caps: use "PCB" instead of "pcb".
 
 Conditions
 ----------
@@ -270,11 +270,11 @@ Declare ``while`` loops as follows:
 
 Notice how:
 
-- Each curly brace is on its own line;
-- There's a single space after ``while``;
-- There isn't any space immediately after the ``(`` or immediately
+* Each curly brace is on its own line;
+* There's a single space after ``while``;
+* There isn't any space immediately after the ``(`` or immediately
    before the ``)``; and
-- The loop's body (a comment in this case) is indented with 4 spaces.
+* The loop's body (a comment in this case) is indented with 4 spaces.
 
 do ... while
 ~~~~~~~~~~~~
@@ -290,11 +290,11 @@ Declare ``do ... while`` loops as follows:
 
 Notice how:
 
-- Each curly brace is on its own line;
-- There's a single space after ``while``;
-- There isn't any space immediately after the ``(`` or immediately
+* Each curly brace is on its own line;
+* There's a single space after ``while``;
+* There isn't any space immediately after the ``(`` or immediately
    before the ``)``; and
-- The loop's body (a comment in this case) is indented with 4 spaces.
+* The loop's body (a comment in this case) is indented with 4 spaces.
 
 Pointers
 --------
@@ -385,13 +385,13 @@ Preprocessor Directives
 
 Place preprocessor directives in the following order:
 
-- Include guard
-- #include directives
-- #define directives, grouped by purpose
-- Everything else
+* Include guard
+* #include directives
+* #define directives, grouped by purpose
+* Everything else
 
 Include directives should be grouped in the following order:
 
-- External libraries
-- System costants files
-- In-house files
+* External libraries
+* System costants files
+* In-house files

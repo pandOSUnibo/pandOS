@@ -270,11 +270,11 @@ Declare ``while`` loops as follows:
 
 Notice how:
 
--  Each curly brace is on its own line;
--  There's a single space after ``while``;
--  There isn't any space immediately after the ``(`` or immediately
+- Each curly brace is on its own line;
+- There's a single space after ``while``;
+- There isn't any space immediately after the ``(`` or immediately
    before the ``)``; and
--  The loop's body (a comment in this case) is indented with 4 spaces.
+- The loop's body (a comment in this case) is indented with 4 spaces.
 
 do ... while
 ~~~~~~~~~~~~
@@ -290,11 +290,11 @@ Declare ``do ... while`` loops as follows:
 
 Notice how:
 
--  Each curly brace is on its own line;
--  There's a single space after ``while``;
--  There isn't any space immediately after the ``(`` or immediately
+- Each curly brace is on its own line;
+- There's a single space after ``while``;
+- There isn't any space immediately after the ``(`` or immediately
    before the ``)``; and
--  The loop's body (a comment in this case) is indented with 4 spaces.
+- The loop's body (a comment in this case) is indented with 4 spaces.
 
 Pointers
 --------
@@ -385,13 +385,13 @@ Preprocessor Directives
 
 Place preprocessor directives in the following order:
 
--  Include guard
--  #include directives
--  #define directives, grouped by purpose
--  Everything else
+- Include guard
+- #include directives
+- #define directives, grouped by purpose
+- Everything else
 
 Include directives should be grouped in the following order:
 
--  External libraries
--  System costants files
--  In-house files
+- External libraries
+- System costants files
+- In-house files

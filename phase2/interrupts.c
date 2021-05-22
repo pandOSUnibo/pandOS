@@ -19,10 +19,6 @@
 
 #define DEVREGAREA ((devregarea_t *)RAMBASEADDR)
 
-void Cbreak(){
-
-}
-
 /**
  * @brief Maps a bitmask-like unsigned int to the
  * index of its corresponding "on" bit.
@@ -51,7 +47,6 @@ HIDDEN int mapToInt(unsigned int map) {
 		case 0x00000080:
 			return 7;
 		default:
-			Cbreak();
 			PANIC();
 			return -1;
 	}
@@ -78,9 +73,6 @@ HIDDEN void unblockLoad(int deviceType, int instanceID,
 	}
 }
 
-int debugDevType; 
-int debugInstanceID;
-
 /**
  * @brief Handles non-timer interrupts.
  * 
@@ -89,13 +81,11 @@ int debugInstanceID;
  * @remark DEVICE_TYPES is defined in initial.h.
  */
 HIDDEN void nonTimerInterrupt(int deviceType) {
-	debugDevType = deviceType;
 	volatile unsigned int instanceMap = DEVREGAREA->interrupt_dev[deviceType];
 
 	// Get the device instance with highest priority
 	instanceMap &= -instanceMap;
 	int instanceID = mapToInt(instanceMap);
-	debugInstanceID = instanceID;
 	volatile unsigned int statusCode;
 
 	if (deviceType == 4) {

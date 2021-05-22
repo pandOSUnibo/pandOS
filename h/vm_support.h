@@ -28,7 +28,13 @@
  */
 extern int dataPages[UPROCNUMBER];
 
+/**
+ * @brief Updates the TLB.
+ * 
+ * @param updatedEntry Pointer to the entry with the new TLB values.
+ */
 void updateTLB(pteEntry_t *updatedEntry);
+
 /**
  * @brief Initializes support level structures.
  */

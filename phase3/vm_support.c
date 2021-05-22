@@ -8,8 +8,15 @@
 #include "vm_support.h"
 
 
-// Importante: POOLSTART deve essere un multiplo di 4K
+#define HEADERPAGE 0
+#define HEADERTEXTSIZE 0x0014
+#define HEADERDATASIZE 0x0014
+
+#define TEXTSIZE (unsigned int ) *((memaddr *)(KSEG1 + PAGESIZE + HEADERTEXTSIZE))
+#define DATASIZE (unsigned int ) *((memaddr *)(KSEG1 + PAGESIZE + HEADERDATASIZE))
+
 #define POOLSTART (RAMSTART + (32 * PAGESIZE))
+
 #define POOLEND (POOLSTART + FRAMENUMBER * PAGESIZE)
 #define PFNSHIFT 12
 #define PFNMASK 0xFFFFF000
@@ -22,17 +29,18 @@
 #define GETVPN(T) ((UPROCSTACKPG <= T && T <= USERSTACKTOP) ? STACKPG : ((T - VPNBASE) >> VPNSHIFT))
 #define SETPFN(TO, N) TO = (TO & ~PFNMASK) | ((N << PFNSHIFT) + POOLSTART)
 
-// TODO: Usarlo anche per le fasi precedenti?
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
-#define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON | IMON)
+#define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON)
 
 #define FLASHADDRSHIFT 8
 
-#define HEADERPAGE 0
-#define HEADERTEXTSIZE 0x0014
 #define PAGESHIFT 12
 #define FRAMETOADDRESS(T) ((T << PAGESHIFT) + POOLSTART)
 
+/**
+ * @brief Contains information regarding the swap
+ * pool.
+ */
 HIDDEN swap_t swapTable[FRAMENUMBER];
 
 /**
@@ -63,8 +71,6 @@ void initSwapStructs(){
     }
 }
 
-// TODO: Guardare ottimizzazioni
-
 /**
  * @brief Finds the matching entry for a page number.
  * 
@@ -75,14 +81,14 @@ pteEntry_t* findEntry(unsigned int pageNumber) {
     return &(currentProcess->p_supportStruct->sup_privatePgTbl[pageNumber]);
 }
 
-// TODO - possibile soluzione al loop?
-// Funzione che ripristina lo stato salvato nella support structure
-// e non quello nella bios data page
+/**
+ * @brief Restores the processor state saved in the current process' support structure
+ * 
+ * @param currentSupport Pointer to the current process' support structure
+ */
 void resumeVM(support_t *currentSupport){
     LDST((state_t *) &(currentSupport->sup_exceptState[PGFAULTEXCEPT]));
 }
-
-
 
 /**
  * @brief Finds the index of a frame that will contain the
@@ -103,11 +109,6 @@ int findReplacement() {
     return currentReplacementIndex = (currentReplacementIndex + i) % FRAMENUMBER;
 }
 
-/**
- * @brief Updates the TLB.
- * 
- * @param updatedEntry Pointer to the entry with the new TLB values.
- */
 void updateTLB(pteEntry_t *updatedEntry){
 
     // Check if the updated TLB entry is cached in the TLB
@@ -134,33 +135,32 @@ void updateTLB(pteEntry_t *updatedEntry){
  * @remark DEVICE_INSTANCES is defined in pandos_const.h.
  */
 void executeFlashAction(int deviceNumber, unsigned int primaryPage, unsigned int command, support_t *currentSupport) {
-    // Debug
-    if (deviceNumber < 0 || deviceNumber > 7) {
-        PANIC();
-    }
-
     // Obtain the mutex on the device
-    memaddr primaryAddress = (primaryPage << PFNSHIFT) + POOLSTART ;
+    memaddr primaryAddress = (primaryPage << PFNSHIFT) + POOLSTART;
     SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
     dtpreg_t *flashRegister = (dtpreg_t *) DEV_REG_ADDR(FLASHINT, deviceNumber);
+    flashRegister->data0 = primaryAddress;
     flashRegister->data0 = primaryAddress;
 
     // Disabling interrupt doesn't interfere with SYS5, since SYSCALLS aren't
     // interrupts
     DISABLEINTERRUPTS;
-    
+
     flashRegister->command = command;
+
     // Wait for the device
-    // The device ACK is handled by SYS5
+    // Note: the device ACK is handled by SYS5
     unsigned int deviceStatus = SYSCALL(IOWAIT, FLASHINT, deviceNumber, FALSE);
 
     ENABLEINTERRUPTS;
+
     // Release the mutex
     SYSCALL(VERHOGEN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
 
     if (deviceStatus != READY) {
         // Release the mutex on the swap pool semaphore
         SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
+
         // Raise a trap
         trapExceptionHandler(currentSupport);
     }
@@ -200,14 +200,6 @@ void writeFrameToFlash(int deviceNumber, unsigned int flashBlock, unsigned int p
     executeFlashAction(deviceNumber, primaryPage, command, currentSupport);
 }
 
-
-unsigned int debugOcc;
-unsigned int currAsid;
-unsigned int inPage;
-unsigned int outPage;
-swap_t table;
-unsigned int debugPage;
-
 void uTLB_PageFaultHandler() {
     // Get Current Process's Support Structure
     support_t *currentSupport = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
@@ -222,21 +214,12 @@ void uTLB_PageFaultHandler() {
 
     // Determine the ASID and the missing page number
     int currentASID = currentSupport->sup_asid;
-    // TODO - trovare una gestione più carina per la pagina dello stack.
     int missingPageNumber = GETVPN(currentSupport->sup_exceptState[PGFAULTEXCEPT].entry_hi);
     // Pick a frame replacement by calling page replacement algorithm
     int selectedFrame = findReplacement();
 
-    // TODO - debug
-    currAsid = currentASID;
-    outPage = selectedFrame;
-    inPage = missingPageNumber;
-    table = swapTable[0];
-
     // Determine if frame i is occupied
     if (swapTable[selectedFrame].sw_pte->pte_entryLO & VALIDON) {
-        // Occupied
-
         // Get the occupied ASID and page number
         int occupiedASID = swapTable[selectedFrame].sw_asid;
         int occupiedPageNumber = swapTable[selectedFrame].sw_pageNo;
@@ -247,23 +230,22 @@ void uTLB_PageFaultHandler() {
         // Mark the occupied entry as not valid
         pteEntry_t *occupiedPageTable = swapTable[selectedFrame].sw_pte;
         occupiedPageTable->pte_entryLO &= ~VALIDON;
-        debugPage = occupiedPageTable->pte_entryLO;
         // Update the TLB, if needed
         updateTLB(occupiedPageTable);
 
         // Re-enable interrupts
         ENABLEINTERRUPTS;
+
         // Update process x's backing store
-        // TODO aggiungere controllo sul dirty bit
         if(occupiedPageTable->pte_entryLO & DIRTYON){
-            debugOcc = swapTable[selectedFrame].sw_pageNo;
             writeFrameToFlash(occupiedASID-1, occupiedPageNumber, selectedFrame, currentSupport);
         }
-
     }
 
     // Read the contents from the flash device
     readFrameFromFlash(currentASID - 1, missingPageNumber, selectedFrame, currentSupport);
+
+    DISABLEINTERRUPTS;
     // Update the swap pool table by setting the new ASID, page number and pointer to the process's page table entry
     swapTable[selectedFrame].sw_asid = currentASID;
     swapTable[selectedFrame].sw_pageNo = missingPageNumber;
@@ -276,8 +258,6 @@ void uTLB_PageFaultHandler() {
         memaddr textSize = *((memaddr *)(headerAddress + HEADERTEXTSIZE));
         dataPages[currentASID - 1] = textSize >> PAGESHIFT;
     }
-
-    DISABLEINTERRUPTS;
     
     // Update the process' page table
     currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON;
@@ -295,9 +275,6 @@ void uTLB_PageFaultHandler() {
     
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
 
-    // Return control to the process by loading the processor state
-    // Qui fa un loop, mettere il bp su A2break e notare come
-    // vengano sempre ripetute queste due funzioni ()
     resumeVM(currentSupport);
 }
 

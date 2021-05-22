@@ -8,20 +8,17 @@
 
 semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 
-// TODO - passare current support come parametro?
 #define GETDEVNUMBER(support) (support->sup_asid - 1)
-
 
 #define CHECKADDRTXT(START, END) ((START >= (char *) VPNBASE) && (END <= (char *) VPNTOP))
 
 #define CHECKADDRSTCK(START, END) ((START >= (char *) UPROCSTACKPG) && (END <= (char *) USERSTACKTOP))
 
 // Check if the given address is valid
-#define CHECKADDR(START, END)    (CHECKADDRTXT(START, END) || CHECKADDRSTCK(START, END))
+#define CHECKADDR(START, END) (CHECKADDRTXT(START, END) || CHECKADDRSTCK(START, END))
 
 #define DISABLEINTERRUPTS setSTATUS(getSTATUS() & (~IECON))
 #define ENABLEINTERRUPTS setSTATUS(getSTATUS() | IECON | IMON)
-
 
 #define PRINTCHR 2
 
@@ -32,7 +29,6 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
 #define EOL '\n'
 #define RECEIVECHAR 2
 
-// TODO - Linee troppo lunghe!!!
 
 /**
  * @brief Returns control to the user process after
@@ -42,12 +38,8 @@ semaphore semMutexDevices[DEVICE_TYPES][DEVICE_INSTANCES];
  * of the current process.
  */
 void resumeSupport(support_t *currentSupport){
-    // TODO - va incrementato anche t9?
     currentSupport->sup_exceptState[GENERALEXCEPT].pc_epc += WORDLEN;
     LDST(&currentSupport->sup_exceptState[GENERALEXCEPT]);
-}
-void A3break(){
-
 }
 
 /**
@@ -80,7 +72,6 @@ void terminate(support_t *currentSupport) {
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
 
-unsigned int debugPrinter;
 
 /**
  * @brief Writes a string to the printer used by the current process.
@@ -92,17 +83,12 @@ unsigned int debugPrinter;
  */
 void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
-    // Debug
-    if (devNumber < 0 || devNumber > 7) {
-        PANIC();
-    }
     int retValue = 0;
-    debugPrinter = devNumber;
+
     // Check if the address and the length are valid
     if(CHECKADDR(virtAddr, virtAddr+len) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[PRINTSEM][devNumber], 0, 0);
         dtpreg_t *writingRegister = (dtpreg_t *)DEV_REG_ADDR(PRNTINT, devNumber);
-
         for (int i = 0; i < len; i++) {
             if(writingRegister->status == READY) {
                 DISABLEINTERRUPTS;
@@ -112,7 +98,7 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
                 ENABLEINTERRUPTS;
                 retValue++;
             }
-            else{
+            else {
                 // Return the negative of the device status
                 retValue = -(writingRegister->status);
                 break;
@@ -126,18 +112,6 @@ void writeToPrinter(char *virtAddr, int len, support_t *currentSupport) {
         terminate(currentSupport);
     }
 }
-termreg_t* debugBuffer;
-
-memaddr debugWriteReg = 0;
-
-void DebugTerm(){}
-unsigned int debugStatus = 9;
-
-void debugIoWait() {
-
-}
-
-char *debugVirtAddr = NULL;
 
 /**
  * @brief Writes a string to the terminal used by the current process.
@@ -150,11 +124,7 @@ char *debugVirtAddr = NULL;
 void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
     int devNumber = GETDEVNUMBER(currentSupport);
     unsigned int retValue = 0;
-    // Debug
-    if (devNumber < 0 || devNumber > 7) {
-        PANIC();
-    }
-    debugVirtAddr = virtAddr;
+
     // Check if the address and the length are valid
     if(CHECKADDR(virtAddr, virtAddr+len) && len <= 128 && len >= 0) {
         SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMWRSEM][devNumber], 0, 0);
@@ -162,12 +132,9 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
         unsigned int ioStatus = OKCHARTRANS;
         for (int i = 0; i < len; i++) {
             if(((writingRegister->transm_status & TERMSTATUSMASK) == READY) && ((ioStatus & TERMSTATUSMASK) == OKCHARTRANS)) {
-                A3break();
                 DISABLEINTERRUPTS;  
                 writingRegister->transm_command = (((unsigned int) *(virtAddr + i)) << TERMTRANSHIFT) | TRANSMITCHAR;
-                debugIoWait();
                 ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, FALSE);
-                debugIoWait();
                 ENABLEINTERRUPTS;
                 retValue++;
             }
@@ -187,7 +154,6 @@ void writeToTerminal(char *virtAddr, int len, support_t *currentSupport) {
 }
 
 
-// TODO - è possibile migliorare le condizioni del while?
 /**
  * @brief Reads a string from the terminal used by the current process.
  * 
@@ -205,6 +171,7 @@ void readTerminal(char *buffer, support_t *currentSupport){
     termreg_t *readingRegister = (termreg_t *) DEV_REG_ADDR(TERMINT, devNumber);
 
     SYSCALL(PASSEREN, (memaddr) &semMutexDevices[TERMRDSEM][devNumber], 0, 0);
+
     // Check if the buffer address is valid, if the device is ready and if the last character
     // read is different from the end of line
     while(CHECKADDR(buffer, buffer) && ((readingRegister->recv_status & TERMSTATUSMASK) == READY) && (recvd != EOL)) {
@@ -213,7 +180,7 @@ void readTerminal(char *buffer, support_t *currentSupport){
         ioStatus = SYSCALL(IOWAIT, TERMINT, devNumber, TRUE);
         ENABLEINTERRUPTS;
         if((ioStatus & TERMSTATUSMASK) == OKCHARTRANS) {
-            // check ioStatus if correct else break and return
+            // Check if ioStatus is correct, otherwise break and return
             recvd = (ioStatus >> TERMTRANSHIFT);
             if(recvd != EOL) {
                 *buffer = recvd;
@@ -225,7 +192,8 @@ void readTerminal(char *buffer, support_t *currentSupport){
             break;
         }
     }
-    // Check the exit while condition
+
+    // Check the exit condition of the while loop
     // Terminate the process if the buffer is an invalid adress
     if((readingRegister->recv_status & TERMSTATUSMASK) != READY || (ioStatus & TERMSTATUSMASK) != OKCHARTRANS) {
         retValue = -(ioStatus);
@@ -250,8 +218,6 @@ void getTod(support_t *currentSupport) {
     STCK(currentSupport->sup_exceptState[GENERALEXCEPT].reg_v0);
 }
 
-int debugSysId;
-
 /**
  * @brief Handles support level syscalls.
  * 
@@ -259,8 +225,6 @@ int debugSysId;
  * @param currentSupport Pointer to the support structure of the current process.
  */
 void syscallExceptionHandler(int sysId, support_t *currentSupport) {
-
-    debugSysId = sysId;
     // Get arguments for syscalls
     volatile unsigned int arg1 = currentSupport->sup_exceptState[GENERALEXCEPT].reg_a1;
     volatile unsigned int arg2 = currentSupport->sup_exceptState[GENERALEXCEPT].reg_a2;
@@ -293,7 +257,6 @@ void trapExceptionHandler(support_t *currentSupport) {
 }
 
 void generalExceptionHandler() {
-    
     support_t *currentSupport = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
 
     // Get syscall code

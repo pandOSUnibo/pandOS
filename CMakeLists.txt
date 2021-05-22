@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_TOOLCHAIN_FILE ./toolchain.cmake)
-project(kernel VERSION 0.2.0 LANGUAGES C)
+project(kernel VERSION 0.3.0 LANGUAGES C)
 
 # Option for generating the docs
 option(COMPILE_DOC "Compile the documentation in pdf" OFF)

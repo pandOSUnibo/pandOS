@@ -56,6 +56,7 @@ umps3
 appunti.md
 .vscode
 *.umps
+phase3config
 
 build
 umps3Config

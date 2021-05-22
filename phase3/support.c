@@ -17,22 +17,11 @@ HIDDEN support_t *freeSupport[UPROCNUMBER+1];
  */
 HIDDEN int stackSup;
 
-/**
- * @brief Deallocates a support structure.
- * 
- * @param support Pointer to the structure that will be
- * deallocated.
- */
 void deallocSupport(support_t *support){
     freeSupport[stackSup] = support;
     stackSup++;
 }
 
-/**
- * @brief Allocates a support structure.
- * 
- * @return Pointer to the newly allocated structured.
- */
 support_t* allocSupport() {
     support_t *sup = NULL;
     if (stackSup != 0){

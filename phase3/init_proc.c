@@ -5,12 +5,8 @@
 #include "init_proc.h"
 #include "support.h"
 #include "sys_support.h"
-#include "syscalls.h"
 #include "vm_support.h"
 
-// TODO - Eliminare
-// #define UNOCUPPIED (0x3F<<ASIDSHIFT)
-// Semaphore used to wait the child process termination
 /**
  * @brief Semaphore to handle process creation and
  * termination.
@@ -20,7 +16,6 @@
  */
 semaphore masterSemaphore;
 
-void debugEntry(){}
 
 
 
@@ -44,7 +39,7 @@ void test(void) {
         sup->sup_exceptContext[PGFAULTEXCEPT].c_pc = (memaddr) &uTLB_PageFaultHandler;
         sup->sup_exceptContext[GENERALEXCEPT].c_pc = (memaddr) &generalExceptionHandler; 
         sup->sup_exceptContext[PGFAULTEXCEPT].c_status = IEPON | IMON | TEBITON;
-        sup->sup_exceptContext[GENERALEXCEPT].c_status = IEPON | IMON | TEBITON; // GeneralExceptionHandler
+        sup->sup_exceptContext[GENERALEXCEPT].c_status = IEPON | IMON | TEBITON;
         sup->sup_exceptContext[PGFAULTEXCEPT].c_stackPtr = (memaddr) &(sup->sup_stackGen[499]);
         sup->sup_exceptContext[GENERALEXCEPT].c_stackPtr = (memaddr) &(sup->sup_stackGen[499]);
 
@@ -53,17 +48,15 @@ void test(void) {
             sup->sup_privatePgTbl[row].pte_entryHI = VPNBASE + (row << VPNSHIFT) + (id << ASIDSHIFT);
             sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON;
         }
-        
+
         sup->sup_privatePgTbl[row].pte_entryHI = UPROCSTACKPG + (id << ASIDSHIFT);
         sup->sup_privatePgTbl[row].pte_entryLO = DIRTYON;
-        // TODO: Call SYS1 on U-proc
+        // Call SYS1 on U-proc
         SYSCALL(CREATEPROCESS, (memaddr) &p, (memaddr)sup, 0);
-
     }
 
-    // TODO: è sempre UPROCNUMBER?
     for (int i = 0; i < UPROCNUMBER; i++){
         SYSCALL(PASSEREN, (memaddr) &masterSemaphore, 0, 0);
     }
-    termProcess();
+    SYSCALL(TERMPROCESS, 0, 0, 0);
 }

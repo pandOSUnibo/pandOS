@@ -81,7 +81,7 @@ HIDDEN void unblockLoad(int deviceType, int instanceID,
  * @remark DEVICE_TYPES is defined in initial.h.
  */
 HIDDEN void nonTimerInterrupt(int deviceType) {
-	unsigned int instanceMap = DEVREGAREA->interrupt_dev[deviceType];
+	volatile unsigned int instanceMap = DEVREGAREA->interrupt_dev[deviceType];
 
 	// Get the device instance with highest priority
 	instanceMap &= -instanceMap;
@@ -154,7 +154,7 @@ HIDDEN void intervalTimerInterrupt() {
 }
 
 void interruptsHandler(state_t *exceptionState) {
-	unsigned int ip = (exceptionState->cause & GETIP);
+	volatile unsigned int ip = (exceptionState->cause & GETIP);
 
 	// Keep the least significant bit
 	ip &= -ip;

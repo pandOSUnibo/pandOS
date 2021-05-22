@@ -104,6 +104,7 @@
 
 //Index register constants
 #define PRESENTFLAG 0x80000000
+#define CACHED      0
 
 
 // Device register constants 

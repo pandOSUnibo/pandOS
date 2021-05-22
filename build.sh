@@ -1,12 +1,12 @@
 #!/bin/bash
 
 if [ "$#" -ne 1 ] ; then
-        echo "$0: Insert 'phase1' or 'phase2' as argument"
+        echo "$0: Insert 'phase1' or 'phase2' or 'phase3' as argument"
         exit 3
 fi
 
-if [ $1 != "phase1" -a $1 != 'phase2' ] ; then
-    echo "$0: Argument not valid, only 'phase1' and 'phase2' are allowed"
+if [ $1 != "phase1" -a $1 != 'phase2' -a $1 != 'phase3' ] ; then
+    echo "$0: Argument not valid, only 'phase1', 'phase2', 'phase3' are allowed"
     exit 1
 else
     rm -rf ./build

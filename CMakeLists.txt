@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_TOOLCHAIN_FILE ./toolchain.cmake)
-project(kernel VERSION 0.2.0 LANGUAGES C)
+project(kernel VERSION 0.3.0 LANGUAGES C)
 
 # Option for generating the docs
 option(COMPILE_DOC "Compile the documentation in pdf" OFF)
@@ -22,8 +22,11 @@ if(PHASE STREQUAL "phase1")
 elseif(PHASE STREQUAL "phase2")
     set(TARGET_PATH ./phase2/)
     set(TARGET phase2)
+elseif(PHASE STREQUAL "phase3")
+    set(TARGET_PATH ./phase3/)
+    set(TARGET phase3)
 else()
-    message(FATAL_ERROR "Phase must be equal to 'phase1' or 'phase2'." )    
+    message(FATAL_ERROR "Phase must be equal to 'phase1' or 'phase2' or 'phase3'." )    
 endif()
 
 #Generate kernel
@@ -47,6 +50,7 @@ add_custom_target(crtso ALL
 add_subdirectory(./testers)
 add_subdirectory(./phase1)
 add_subdirectory(./phase2)
+add_subdirectory(./phase3)
 
 #Add dependecies
 add_dependencies(${PROJECT_NAME} ${TARGET} libumps crtso)

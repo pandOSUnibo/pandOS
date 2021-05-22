@@ -9,7 +9,6 @@ volatile cpu_t sliceStart;
 
 /**
  * @brief Preemptive round-robin scheduler with time slice value of 5ms.
- * 
  */
 void schedule() {
 	if (emptyProcQ(readyQueue)) {

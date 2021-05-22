@@ -79,7 +79,6 @@ HIDDEN void termProcessRecursive(pcb_t *p) {
 	processCount--;
 }
 
-
 void passeren(semaphore *semAdd) {
 	(*semAdd)--;
 
@@ -110,13 +109,11 @@ pcb_t *verhogen(semaphore *semAdd) {
 	return unblockedProcess;
 }
 
-
 void ioWait(int intlNo, int dNum, bool waitForTermRead) {
 	// Save the process state
 	volatile state_t exceptionState = *EXCSTATE;
 	currentProcess->p_s = exceptionState;
 	softBlockCount++;
-
 	// Select the correct semaphore
 	switch (intlNo) {
 	case DISKINT:

@@ -19,17 +19,28 @@ typedef signed int cpu_t;
  */
 typedef unsigned int memaddr;
 
+typedef struct pteEntry_t {
+    unsigned int pte_entryHI;
+    unsigned int pte_entryLO;
+} pteEntry_t;
+
+
 typedef struct context_t {
     unsigned int c_stackPtr;
     unsigned int c_status;
     unsigned int c_pc;
 } context_t;
 
+
 typedef struct support_t {
-    int       sup_asid;             ///< process ID
-    state_t   sup_exceptState[2];   ///< old state exceptions
-    context_t sup_exceptContext[2]; ///< new contexts for passing up
+    int       sup_asid;             ///< Process ID
+    state_t   sup_exceptState[2];   ///< Old state exceptions
+    context_t sup_exceptContext[2]; ///< New contexts for passing up
+    pteEntry_t sup_privatePgTbl[USERPGTBLSIZE]; ///< User page table
+    int sup_stackTLB[500];
+    int sup_stackGen[500];
 } support_t;
+
 
 /**
  * @struct pcb_t
@@ -76,4 +87,10 @@ typedef int bool;
  */
 typedef int semaphore;
 
+/* Page swap pool information structure type */
+typedef struct swap_t {
+    int         sw_asid;   ///< ASID number
+    int         sw_pageNo; ///< Page's virtual page number
+    pteEntry_t *sw_pte;    ///< Page's PTE entry
+} swap_t;
 #endif

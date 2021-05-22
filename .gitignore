@@ -55,8 +55,10 @@ dkms.conf
 umps3
 appunti.md
 .vscode
+*.umps
 
 build
 umps3Config
+phase3Config
 docs/source/*.rst
 docs/doxyxml

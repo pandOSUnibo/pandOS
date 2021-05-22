@@ -20,7 +20,7 @@
  * If no memory is available an error code -1 is placed in the caller's v0 register, otherwise 0.
  * 
  * @param statep Initial state of the new process.
- * @param supportp Support structure used from the SupportLevel.
+ * @param supportp Support structure used by the support level.
  * 
  */
 void createProcess(state_t * statep, support_t * supportp);

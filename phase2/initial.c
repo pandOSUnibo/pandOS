@@ -24,7 +24,7 @@ int main(void) {
 
 	passUpVector->tlb_refill_handler = (memaddr) &uTLB_RefillHandler;
 	passUpVector->tlb_refill_stackPtr = (memaddr) TLBSP_START;
-	passUpVector->exception_handler = (memaddr) exceptionHandler;
+	passUpVector->exception_handler = (memaddr) &exceptionHandler;
 	passUpVector->exception_stackPtr = (memaddr) EXCSP_START;
 
 	// Initialize the Level 2 structures

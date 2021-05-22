@@ -86,7 +86,7 @@ void resume() {
 
 /**
  * @brief Handles a TLB exception.
- *  
+ *  a
  */
 HIDDEN void TLBExceptionHandler() {
 	passUpOrDie(PGFAULTEXCEPT);
@@ -119,6 +119,8 @@ HIDDEN void syscallHandler(unsigned int KUp) {
 		// KUp is 0 in kernel mode and 0x00000008
 		// in user mode
 		if (KUp == 0) {
+			// Increment the pc
+			EXCSTATE->pc_epc += WORDLEN;
 			switch (sysId) {
 			case CREATEPROCESS:
 				createProcess((state_t *) arg1, (support_t *) arg2);
@@ -169,14 +171,12 @@ HIDDEN void syscallHandler(unsigned int KUp) {
 	}
 }
 
-
 void exceptionHandler() {
 	state_t *exceptionState = EXCSTATE;
 
 	volatile unsigned int cause = (exceptionState->cause & GETEXECCODE) >> CAUSESHIFT;
 	// Increment the PC by one word so that when control returns to the
 	// process, it does not perform a syscall again
-	exceptionState->pc_epc += WORDLEN;
 
 	switch (cause) {
 	case INT:

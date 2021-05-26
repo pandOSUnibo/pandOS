@@ -2,7 +2,7 @@
  * @file support.h
  * @author Luca Donno, Antonio Lopez, Samuele Marro, Edoardo Merli
  * @brief 
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2021-04-22
  * 
  * @copyright Copyright (c) 2021

@@ -2,7 +2,7 @@
  * @file vm_support.h
  * @author Luca Donno, Antonio Lopez, Samuele Marro, Edoardo Merli
  * @brief Virtual memory management.
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2021-04-19
  * 
  * @copyright Copyright (c) 2021

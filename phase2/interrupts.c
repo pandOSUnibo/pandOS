@@ -92,16 +92,17 @@ HIDDEN void nonTimerInterrupt(int deviceType) {
 		// Terminal device 
 		termreg_t *termStatus = &(DEVREGAREA->devreg[deviceType][instanceID].term);
 
-		if ((termStatus->recv_status & TERMSTATUSMASK) == RECVD_CHAR) {
-			statusCode = termStatus->recv_status;
-			DEVREGAREA->devreg[deviceType][instanceID].term.recv_command = ACK;
-			unblockLoad(deviceType, instanceID, statusCode);
-		}
 		if ((termStatus->transm_status & TERMSTATUSMASK) == TRANS_CHAR) {
 			statusCode = termStatus->transm_status;
 			DEVREGAREA->devreg[deviceType][instanceID].term.transm_command = ACK;
 			unblockLoad(deviceType + 1, instanceID, statusCode);
 		}
+		else if ((termStatus->recv_status & TERMSTATUSMASK) == RECVD_CHAR) {
+			statusCode = termStatus->recv_status;
+			DEVREGAREA->devreg[deviceType][instanceID].term.recv_command = ACK;
+			unblockLoad(deviceType, instanceID, statusCode);
+		}
+		
 	}
 	else {
 		// DTP device

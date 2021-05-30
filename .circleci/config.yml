@@ -21,6 +21,10 @@ jobs:
           name: Building Phase 2
           command : |
             ./build.sh phase2
+      - run:
+          name: Building Phase 3
+          command : |
+            ./build.sh phase3
 
   docs:
     machine:

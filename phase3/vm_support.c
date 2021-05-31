@@ -140,7 +140,6 @@ void executeFlashAction(int deviceNumber, unsigned int primaryPage, unsigned int
     SYSCALL(PASSEREN, (memaddr) &semMutexDevices[FLASHSEM][deviceNumber], 0, 0);
     dtpreg_t *flashRegister = (dtpreg_t *) DEV_REG_ADDR(FLASHINT, deviceNumber);
     flashRegister->data0 = primaryAddress;
-    flashRegister->data0 = primaryAddress;
 
     // Disabling interrupt doesn't interfere with SYS5, since SYSCALLS aren't
     // interrupts
@@ -223,7 +222,7 @@ void uTLB_PageFaultHandler() {
         // Get the occupied ASID and page number
         int occupiedASID = swapTable[selectedFrame].sw_asid;
         int occupiedPageNumber = swapTable[selectedFrame].sw_pageNo;
-        
+
         // Disable interrupts
         DISABLEINTERRUPTS;
 
@@ -258,7 +257,7 @@ void uTLB_PageFaultHandler() {
         memaddr textSize = *((memaddr *)(headerAddress + HEADERTEXTSIZE));
         dataPages[currentASID - 1] = textSize >> PAGESHIFT;
     }
-    
+
     // Update the process' page table
     currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO |= VALIDON;
     SETPFN(currentSupport->sup_privatePgTbl[missingPageNumber].pte_entryLO, selectedFrame);
@@ -272,7 +271,7 @@ void uTLB_PageFaultHandler() {
     updateTLB(&(currentSupport->sup_privatePgTbl[missingPageNumber]));
 
     ENABLEINTERRUPTS;
-    
+
     SYSCALL(VERHOGEN, (memaddr) &semSwapPool, 0, 0);
 
     resumeVM(currentSupport);

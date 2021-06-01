@@ -17,7 +17,7 @@
 
 #include "support.h"
 
-#define FRAMENUMBER (2 * UPROCNUMBER)
+#define FRAMENUMBER 3 //(2 * UPROCNUMBER)
 #define UNKNOWNDATAPAGE -1
 
 

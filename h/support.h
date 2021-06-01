@@ -15,7 +15,7 @@
 #include "pandos_types.h"
 #include "pandos_const.h"
 
-#define UPROCNUMBER UPROCMAX
+#define UPROCNUMBER 2 //UPROCMAX
 /**
  * @brief Insert in the free list the structure passed.
  * 

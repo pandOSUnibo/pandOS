@@ -252,7 +252,7 @@ void uTLB_PageFaultHandler() {
 
     // If the page contains header information, use it to identify
     // the first data page
-    if (missingPageNumber != HEADERPAGE || dataPages[currentASID - 1] == UNKNOWNDATAPAGE) {
+    if (missingPageNumber == HEADERPAGE && dataPages[currentASID - 1] == UNKNOWNDATAPAGE) {
         memaddr headerAddress = FRAMETOADDRESS(selectedFrame);
         memaddr textSize = *((memaddr *)(headerAddress + HEADERTEXTSIZE));
         dataPages[currentASID - 1] = textSize >> PAGESHIFT;
